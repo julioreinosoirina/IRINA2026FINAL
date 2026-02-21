@@ -2,17 +2,25 @@ import { useState } from "react";
 import Login from "./components/Login";
 import AppMain from "./components/AppMain";
 
-export default function App() {
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+interface AuthState {
+  email: string;
+  token: string;
+}
 
-  if (!userEmail) {
-    return <Login onLogin={(email) => setUserEmail(email)} />;
+export default function App() {
+  const [auth, setAuth] = useState<AuthState | null>(null);
+
+  if (!auth) {
+    return (
+      <Login onLogin={(email, token) => setAuth({ email, token })} />
+    );
   }
 
   return (
     <AppMain
-      userEmail={userEmail}
-      onLogout={() => setUserEmail(null)}
+      userEmail={auth.email}
+      token={auth.token}
+      onLogout={() => setAuth(null)}
     />
   );
 }
