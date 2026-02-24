@@ -23,7 +23,7 @@ type Vista =
   | { tipo: "cet_categorias"; sector: string; turno: string; alumno: string }
   | { tipo: "cet_areas"; sector: string; turno: string; alumno: string; categoria: string }
   | { tipo: "inclusion_grupos" }
-  | { tipo: "inclusion_alumnos"; grupo: string }
+  | { tipo: "inclusion_alumnos"; grupo: string; grupoId: string }
   | { tipo: "inclusion_docs"; grupo: string; alumno: string; alumnoId: string };
 
 interface AppMainProps {
@@ -241,8 +241,12 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
         return (
           <div className="space-y-3">
             {folderItems.map((g) => (
-              <OptionCard key={g.id} label={g.name} color="green" icon={<GrupoIcon />}
-                onClick={() => navegar({ tipo: "inclusion_alumnos", grupo: g.name })} />
+              <InclusionFolderCard
+                key={g.id}
+                label={g.name}
+                url={driveUrl(g.id)}
+                onNavigate={() => navegar({ tipo: "inclusion_alumnos", grupo: g.name, grupoId: g.id })}
+              />
             ))}
           </div>
         );
@@ -250,7 +254,7 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
       case "inclusion_alumnos":
         if (loadingItems) return <LoadingState texto="Cargando alumnos..." />;
         if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
-        if (folderItems.length === 0) return <EmptyState texto="No se encontraron alumnos." />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron carpetas." />;
         return (
           <div className="space-y-3">
             {folderItems.map((a) => (
@@ -272,11 +276,23 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
       case "inclusion_docs":
         if (loadingItems) return <LoadingState texto="Cargando carpetas..." />;
         if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
-        if (folderItems.length === 0) return <EmptyState texto="No se encontraron carpetas." />;
+        if (folderItems.length === 0) return (
+          <EmptyState texto="Esta carpeta no tiene subcarpetas. Podés subir archivos directamente en Drive." />
+        );
         return (
           <div className="space-y-3">
             {folderItems.map((doc) => (
-              <DriveLink key={doc.id} label={doc.name} url={driveUrl(doc.id)} />
+              <InclusionFolderCard
+                key={doc.id}
+                label={doc.name}
+                url={driveUrl(doc.id)}
+                onNavigate={() => navegar({
+                  tipo: "inclusion_docs",
+                  grupo: vista.grupo,
+                  alumno: doc.name,
+                  alumnoId: doc.id,
+                })}
+              />
             ))}
           </div>
         );
