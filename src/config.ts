@@ -36,4 +36,25 @@ export const CATEGORIAS = [
   "PROTOCOLOS DE RUTINAS Y CRISIS",
 ] as const;
 
-export type Categoria = typeof CATEGORIAS[number];
+// ============================================================
+// INCLUSION — niveles que contienen alumnos
+// ============================================================
+export const NIVELES_INCLUSION = [
+  "NIVEL INICIAL",
+  "NIVEL PRIMARIO",
+  "NIVEL SECUNDARIO",
+] as const;
+
+// ============================================================
+// INCLUSION — categorías fijas de cada alumno
+// ============================================================
+export const CATEGORIAS_INCLUSION = [
+  "INFORME FINAL",
+  "INFORMES MENSUALES",
+  "INFORMES SEMESTRALES",
+  "INFORMES TRIMESTRALES",
+  "OBJETIVOS",
+  "PLAN DE TRATAMIENTO",
+  "PLANIFICACIONES",
+  "PPI 2026",
+] as const;

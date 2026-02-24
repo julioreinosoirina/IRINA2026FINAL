@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import Header from "./Header";
 import OptionCard from "./OptionCard";
-import { CATEGORIAS, CATEGORIA_REFERENCIA, SISTEMA_FOLDER_ID } from "../config";
+import {
+  CATEGORIAS, CATEGORIA_REFERENCIA, SISTEMA_FOLDER_ID,
+  NIVELES_INCLUSION, CATEGORIAS_INCLUSION,
+} from "../config";
 import {
   listSubfolders,
   resolveAreaLinks,
@@ -11,9 +14,10 @@ import {
 } from "../services/driveService";
 import type { DriveFile, AreaLink } from "../services/driveService";
 
-// Estructura real en Drive:
-//   CET / [NIÑOS|JOVENES] / [TURNO MAÑANA|TURNO TARDE] / CATEGORIA / (AREA) / ALUMNO
-//   INCLUSION / [NIVEL PRIMARIO|...] / ALUMNO / [carpetas del alumno]
+// ── Tipos de vista ──────────────────────────────────────────────────────────
+// CET:       SISTEMA/CET/[SECTOR]/[TURNO]/[CATEGORIA]/(AREA)/[ALUMNO]
+// INCLUSION: SISTEMA/INCLUSION/[NIVEL]/[ALUMNO]/[CATEGORIA]   ← niveles con alumnos
+//            SISTEMA/INCLUSION/[AREA]                          ← áreas directas
 
 type Vista =
   | { tipo: "inicio" }
@@ -23,8 +27,8 @@ type Vista =
   | { tipo: "cet_categorias"; sector: string; turno: string; alumno: string }
   | { tipo: "cet_areas"; sector: string; turno: string; alumno: string; categoria: string }
   | { tipo: "inclusion_grupos" }
-  | { tipo: "inclusion_alumnos"; grupo: string; grupoId: string }
-  | { tipo: "inclusion_docs"; grupo: string; alumno: string; alumnoId: string };
+  | { tipo: "inclusion_alumnos"; nivel: string; nivelId: string }
+  | { tipo: "inclusion_categorias"; nivel: string; alumno: string; alumnoId: string };
 
 interface AppMainProps {
   userEmail: string;
@@ -62,13 +66,14 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
     onLogout();
   }
 
+  // ── Carga dinámica desde Drive ────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
     async function cargar() {
       const needsLoad = [
-        "cet_alumnos", "inclusion_grupos", "inclusion_alumnos",
-        "inclusion_docs", "cet_areas",
+        "cet_alumnos", "cet_areas",
+        "inclusion_grupos", "inclusion_alumnos", "inclusion_categorias",
       ].includes(vista.tipo);
       if (!needsLoad) return;
 
@@ -78,6 +83,7 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
       setAreaItems([]);
 
       try {
+        // ── CET ──────────────────────────────────────────
         if (vista.tipo === "cet_alumnos") {
           const id = await resolvePath(
             ["CET", vista.sector, vista.turno, CATEGORIA_REFERENCIA],
@@ -85,25 +91,6 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
           );
           if (!id) throw new Error(`No se encontró: CET/${vista.sector}/${vista.turno}/${CATEGORIA_REFERENCIA}`);
           const items = await listSubfolders(id, token);
-          if (!cancelled) setFolderItems(items);
-        }
-
-        else if (vista.tipo === "inclusion_grupos") {
-          const id = await resolvePath(["INCLUSION"], token, SISTEMA_FOLDER_ID);
-          if (!id) throw new Error("No se encontró la carpeta INCLUSION");
-          const items = await listSubfolders(id, token);
-          if (!cancelled) setFolderItems(items);
-        }
-
-        else if (vista.tipo === "inclusion_alumnos") {
-          const id = await resolvePath(["INCLUSION", vista.grupo], token, SISTEMA_FOLDER_ID);
-          if (!id) throw new Error(`No se encontró: INCLUSION/${vista.grupo}`);
-          const items = await listSubfolders(id, token);
-          if (!cancelled) setFolderItems(items);
-        }
-
-        else if (vista.tipo === "inclusion_docs") {
-          const items = await listSubfolders(vista.alumnoId, token);
           if (!cancelled) setFolderItems(items);
         }
 
@@ -123,6 +110,26 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
           }
         }
 
+        // ── INCLUSION ─────────────────────────────────────
+        else if (vista.tipo === "inclusion_grupos") {
+          const id = await resolvePath(["INCLUSION"], token, SISTEMA_FOLDER_ID);
+          if (!id) throw new Error("No se encontró la carpeta INCLUSION");
+          const items = await listSubfolders(id, token);
+          if (!cancelled) setFolderItems(items);
+        }
+
+        else if (vista.tipo === "inclusion_alumnos") {
+          // Usar el ID directo del nivel (ya lo tenemos)
+          const items = await listSubfolders(vista.nivelId, token);
+          if (!cancelled) setFolderItems(items);
+        }
+
+        else if (vista.tipo === "inclusion_categorias") {
+          // Cargar subcarpetas reales del alumno (son las categorías)
+          const items = await listSubfolders(vista.alumnoId, token);
+          if (!cancelled) setFolderItems(items);
+        }
+
       } catch (e: unknown) {
         if (cancelled) return;
         if (e instanceof Error && e.message === "TOKEN_EXPIRED") {
@@ -139,25 +146,28 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
     return () => { cancelled = true; };
   }, [vista, token]);
 
+  // ── Header info ─────────────────────────────────────────────────────────────
   function getHeaderInfo(): { title: string; subtitle?: string } {
     switch (vista.tipo) {
-      case "inicio":           return { title: "Instituto Irina", subtitle: "Seleccioná una sección" };
-      case "cet_sector":       return { title: "CET", subtitle: "Seleccioná el sector" };
-      case "cet_turno":        return { title: vista.sector, subtitle: "Seleccioná el turno" };
-      case "cet_alumnos":      return { title: `${vista.sector} · ${vista.turno}`, subtitle: "Seleccioná un alumno" };
-      case "cet_categorias":   return { title: vista.alumno, subtitle: `${vista.sector} · ${vista.turno}` };
-      case "cet_areas":        return { title: vista.categoria, subtitle: vista.alumno };
-      case "inclusion_grupos": return { title: "INCLUSION", subtitle: "Seleccioná el nivel" };
-      case "inclusion_alumnos":return { title: vista.grupo, subtitle: "Seleccioná un alumno" };
-      case "inclusion_docs":   return { title: vista.alumno, subtitle: vista.grupo };
+      case "inicio":                 return { title: "Instituto Irina", subtitle: "Seleccioná una sección" };
+      case "cet_sector":             return { title: "CET", subtitle: "Seleccioná el sector" };
+      case "cet_turno":              return { title: vista.sector, subtitle: "Seleccioná el turno" };
+      case "cet_alumnos":            return { title: `${vista.sector} · ${vista.turno}`, subtitle: "Seleccioná un alumno" };
+      case "cet_categorias":         return { title: vista.alumno, subtitle: `${vista.sector} · ${vista.turno}` };
+      case "cet_areas":              return { title: vista.categoria, subtitle: vista.alumno };
+      case "inclusion_grupos":       return { title: "INCLUSION", subtitle: "Seleccioná una sección" };
+      case "inclusion_alumnos":      return { title: vista.nivel, subtitle: "Seleccioná un alumno" };
+      case "inclusion_categorias":   return { title: vista.alumno, subtitle: vista.nivel };
     }
   }
 
   const { title, subtitle } = getHeaderInfo();
 
+  // ── Renderizado ─────────────────────────────────────────────────────────────
   function renderContenido() {
     switch (vista.tipo) {
 
+      // ── Inicio ──
       case "inicio":
         return (
           <div className="space-y-4">
@@ -168,6 +178,7 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
           </div>
         );
 
+      // ── CET ──
       case "cet_sector":
         return (
           <div className="space-y-4">
@@ -234,64 +245,95 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
           </div>
         );
 
-      case "inclusion_grupos":
+      // ── INCLUSION ──
+      case "inclusion_grupos": {
         if (loadingItems) return <LoadingState texto="Cargando..." />;
         if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
-        if (folderItems.length === 0) return <EmptyState texto="No se encontraron niveles." />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron secciones." />;
+
+        // Separar NIVELES (con alumnos) de ÁREAS (abrir directo en Drive)
+        const nivelesNorm = NIVELES_INCLUSION.map((n) => n.toLowerCase());
+        const niveles = folderItems.filter((f) => nivelesNorm.includes(f.name.toLowerCase()));
+        const areas   = folderItems.filter((f) => !nivelesNorm.includes(f.name.toLowerCase()));
+
         return (
-          <div className="space-y-3">
-            {folderItems.map((g) => (
-              <OptionCard key={g.id} label={g.name} color="green" icon={<GrupoIcon />}
-                onClick={() => navegar({ tipo: "inclusion_alumnos", grupo: g.name, grupoId: g.id })} />
-            ))}
+          <div className="space-y-5">
+            {niveles.length > 0 && (
+              <div>
+                <SectionLabel texto="Niveles educativos" />
+                <div className="space-y-3">
+                  {niveles.map((n) => (
+                    <OptionCard key={n.id} label={n.name} color="green" icon={<GrupoIcon />}
+                      onClick={() => navegar({ tipo: "inclusion_alumnos", nivel: n.name, nivelId: n.id })} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {areas.length > 0 && (
+              <div>
+                <SectionLabel texto="Áreas — abrí para cargar archivos" />
+                <div className="space-y-3">
+                  {areas.map((a) => (
+                    <DriveLink key={a.id} label={a.name} url={driveUrl(a.id)} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
+      }
 
       case "inclusion_alumnos":
         if (loadingItems) return <LoadingState texto="Cargando alumnos..." />;
         if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
-        if (folderItems.length === 0) return <EmptyState texto="No se encontraron carpetas." />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron alumnos." />;
         return (
           <div className="space-y-3">
             {folderItems.map((a) => (
-              <InclusionFolderCard
-                key={a.id}
-                label={a.name}
-                url={driveUrl(a.id)}
-                onNavigate={() => navegar({
-                  tipo: "inclusion_docs",
-                  grupo: vista.grupo,
+              <OptionCard key={a.id} label={a.name} color="green" icon={<AlumnoIcon />}
+                onClick={() => navegar({
+                  tipo: "inclusion_categorias",
+                  nivel: vista.nivel,
                   alumno: a.name,
                   alumnoId: a.id,
-                })}
-              />
+                })} />
             ))}
           </div>
         );
 
-      case "inclusion_docs":
+      case "inclusion_categorias": {
         if (loadingItems) return <LoadingState texto="Cargando carpetas..." />;
         if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
-        if (folderItems.length === 0) return (
-          <EmptyState texto="Esta carpeta no tiene subcarpetas. Podés subir archivos directamente en Drive." />
-        );
+
+        // Mostrar lista fija de categorías; si la carpeta existe en Drive, mostrar su link
+        // Si no cargaron aún, mostrar la lista fija de todas formas con aviso
+        const catNorm = (s: string) => s.toLowerCase().trim();
+        const driveMap = new Map(folderItems.map((f) => [catNorm(f.name), f]));
+
         return (
           <div className="space-y-3">
-            {folderItems.map((doc) => (
-              <InclusionFolderCard
-                key={doc.id}
-                label={doc.name}
-                url={driveUrl(doc.id)}
-                onNavigate={() => navegar({
-                  tipo: "inclusion_docs",
-                  grupo: vista.grupo,
-                  alumno: doc.name,
-                  alumnoId: doc.id,
-                })}
-              />
-            ))}
+            {CATEGORIAS_INCLUSION.map((cat) => {
+              const found = driveMap.get(catNorm(cat));
+              if (found) {
+                return <DriveLink key={cat} label={cat} url={driveUrl(found.id)} />;
+              }
+              // Categoría no encontrada en Drive: mostrar deshabilitada
+              return (
+                <div key={cat}
+                  className="w-full bg-white rounded-3xl px-5 py-4 flex items-center gap-4 opacity-40"
+                  style={{ border: "2px solid #e7e5e4" }}>
+                  <span className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+                    style={{ background: "#f5f5f4" }}>
+                    <CarpetaIcon color="#a8a29e" />
+                  </span>
+                  <span className="text-sm font-bold text-left flex-1" style={{ color: "#78716c" }}>{cat}</span>
+                  <span className="text-xs" style={{ color: "#a8a29e" }}>No existe</span>
+                </div>
+              );
+            })}
           </div>
         );
+      }
     }
   }
 
@@ -317,40 +359,11 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
 
 // ── Sub-componentes ─────────────────────────────────────────────────────────
 
-// Tarjeta para INCLUSION: "Abrir en Drive" directo + flecha para ver subcarpetas
-function InclusionFolderCard({ label, url, onNavigate }: { label: string; url: string; onNavigate: () => void }) {
+function SectionLabel({ texto }: { texto: string }) {
   return (
-    <div
-      className="w-full bg-white rounded-3xl px-4 py-3 flex items-center gap-3 shadow-sm"
-      style={{ border: "2px solid #e7e5e4" }}
-    >
-      <span className="flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
-        style={{ background: "#d1fae5" }}>
-        <GrupoIcon />
-      </span>
-      <span className="text-sm font-bold leading-snug flex-1 text-left" style={{ color: "#1c1917" }}>
-        {label}
-      </span>
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex-shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold whitespace-nowrap"
-        style={{ background: "#d1fae5", color: "#065f46", textDecoration: "none" }}
-      >
-        Abrir
-      </a>
-      <button
-        onClick={onNavigate}
-        className="flex-shrink-0 w-9 h-9 rounded-2xl flex items-center justify-center transition-colors"
-        style={{ background: "#f5f5f4", border: "none", cursor: "pointer" }}
-        title="Ver subcarpetas"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="#78716c" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    </div>
+    <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: "#a8a29e" }}>
+      {texto}
+    </p>
   );
 }
 
@@ -478,9 +491,9 @@ function GrupoIcon() {
     </svg>
   );
 }
-function CarpetaIcon() {
+function CarpetaIcon({ color = "currentColor" }: { color?: string }) {
   return (
-    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke={color} viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
     </svg>
