@@ -237,16 +237,12 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
       case "inclusion_grupos":
         if (loadingItems) return <LoadingState texto="Cargando..." />;
         if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
-        if (folderItems.length === 0) return <EmptyState texto="No se encontraron grupos." />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron niveles." />;
         return (
           <div className="space-y-3">
             {folderItems.map((g) => (
-              <InclusionFolderCard
-                key={g.id}
-                label={g.name}
-                url={driveUrl(g.id)}
-                onNavigate={() => navegar({ tipo: "inclusion_alumnos", grupo: g.name, grupoId: g.id })}
-              />
+              <OptionCard key={g.id} label={g.name} color="green" icon={<GrupoIcon />}
+                onClick={() => navegar({ tipo: "inclusion_alumnos", grupo: g.name, grupoId: g.id })} />
             ))}
           </div>
         );
