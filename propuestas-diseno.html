@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Propuestas de Diseño — Instituto Irina</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #fff; }
+
+  /* NAV */
+  .nav { position: sticky; top: 0; z-index: 100; background: #0f172a; border-bottom: 1px solid #1e293b;
+    display: flex; gap: 8px; padding: 14px 24px; overflow-x: auto; }
+  .nav-btn { flex-shrink: 0; padding: 8px 20px; border-radius: 999px; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 600; transition: all .2s; }
+  .nav-btn.active { background: #3b82f6; color: #fff; }
+  .nav-btn:not(.active) { background: #1e293b; color: #94a3b8; }
+  .nav-btn:hover:not(.active) { background: #334155; color: #e2e8f0; }
+
+  /* LAYOUT */
+  .section { display: none; padding: 32px 24px; }
+  .section.active { display: block; }
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: #64748b; margin-bottom: 24px; }
+
+  .screens-row { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .screen-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .screen-label { font-size: 12px; color: #64748b; text-align: center; }
+
+  /* PHONE FRAME */
+  .phone { width: 320px; height: 620px; border-radius: 36px; overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.07);
+    position: relative; flex-shrink: 0; }
+  .phone.tall { height: 680px; }
+
+  /* ═══════════════════════════════════════════════
+     OPCION A — GLASSMORPHISM OSCURO
+  ═══════════════════════════════════════════════ */
+
+  /* Login A */
+  .a-login { width:100%; height:100%; background: linear-gradient(145deg, #1e1b4b 0%, #312e81 40%, #1e3a5f 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px; position:relative; overflow:hidden; }
+  .a-login::before { content:''; position:absolute; width:280px; height:280px; border-radius:50%;
+    background:radial-gradient(circle, rgba(99,102,241,.25) 0%, transparent 70%); top:-60px; right:-80px; }
+  .a-login::after { content:''; position:absolute; width:220px; height:220px; border-radius:50%;
+    background:radial-gradient(circle, rgba(59,130,246,.2) 0%, transparent 70%); bottom:-40px; left:-60px; }
+  .a-card { background:rgba(255,255,255,.07); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.12);
+    border-radius:24px; padding:32px 28px; width:100%; position:relative; z-index:1; }
+  .a-logo { width:56px; height:56px; background:linear-gradient(135deg,#6366f1,#3b82f6); border-radius:18px;
+    display:flex; align-items:center; justify-content:center; margin:0 auto 16px; box-shadow:0 8px 24px rgba(99,102,241,.4); }
+  .a-logo svg { width:26px; height:26px; color:#fff; }
+  .a-title { font-size:20px; font-weight:700; color:#fff; text-align:center; margin-bottom:4px; }
+  .a-sub { font-size:12px; color:rgba(255,255,255,.5); text-align:center; margin-bottom:28px; }
+  .a-input { width:100%; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1);
+    border-radius:12px; padding:12px 16px; color:#fff; font-size:13px; margin-bottom:12px;
+    outline:none; }
+  .a-input::placeholder { color:rgba(255,255,255,.3); }
+  .a-btn { width:100%; padding:13px; border-radius:12px; border:none; cursor:pointer; font-size:14px;
+    font-weight:600; background:linear-gradient(135deg,#6366f1,#3b82f6); color:#fff;
+    box-shadow:0 4px 16px rgba(99,102,241,.4); margin-top:4px; }
+  .a-google-btn { width:100%; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
+    cursor:pointer; font-size:13px; font-weight:600; background:rgba(255,255,255,.06); color:#e2e8f0;
+    display:flex; align-items:center; justify-content:center; gap:10px; margin-top:8px; }
+  .a-divider { display:flex; align-items:center; gap:10px; margin:16px 0; }
+  .a-divider span { font-size:11px; color:rgba(255,255,255,.3); }
+  .a-divider::before, .a-divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.1); }
+
+  /* Home A */
+  .a-home { width:100%; height:100%; background:linear-gradient(145deg,#0f172a,#1e1b4b);
+    display:flex; flex-direction:column; }
+  .a-header { padding:20px 20px 16px; background:rgba(255,255,255,.04); border-bottom:1px solid rgba(255,255,255,.07);
+    backdrop-filter:blur(10px); }
+  .a-header-top { display:flex; align-items:center; justify-content:space-between; }
+  .a-header-name { font-size:15px; font-weight:700; color:#fff; }
+  .a-header-sub { font-size:11px; color:rgba(255,255,255,.4); margin-top:2px; }
+  .a-avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#3b82f6);
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; }
+  .a-body { flex:1; padding:24px 20px; overflow:auto; }
+  .a-section-label { font-size:11px; font-weight:600; color:rgba(255,255,255,.35); text-transform:uppercase;
+    letter-spacing:.08em; margin-bottom:14px; }
+  .a-option { border-radius:18px; padding:20px 18px; margin-bottom:14px; cursor:pointer;
+    display:flex; align-items:center; gap:14px; border:1px solid rgba(255,255,255,.06);
+    transition:all .2s; position:relative; overflow:hidden; }
+  .a-option-cet { background:linear-gradient(135deg, rgba(99,102,241,.3), rgba(59,130,246,.2)); }
+  .a-option-inc { background:linear-gradient(135deg, rgba(16,185,129,.25), rgba(5,150,105,.2)); }
+  .a-option-icon { width:44px; height:44px; border-radius:14px; background:rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .a-option-text { flex:1; }
+  .a-option-title { font-size:16px; font-weight:700; color:#fff; }
+  .a-option-desc { font-size:11px; color:rgba(255,255,255,.45); margin-top:2px; }
+  .a-chevron { color:rgba(255,255,255,.3); }
+  .a-option-badge { position:absolute; right:18px; top:50%; transform:translateY(-50%);
+    background:rgba(255,255,255,.1); border-radius:8px; padding:3px 10px;
+    font-size:10px; color:rgba(255,255,255,.5); }
+
+  /* Alumnos A */
+  .a-search { background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1);
+    border-radius:12px; padding:10px 14px; width:100%; color:#fff; font-size:13px;
+    outline:none; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+  .a-search-icon { color:rgba(255,255,255,.3); flex-shrink:0; }
+  .a-search input { background:transparent; border:none; color:#fff; font-size:13px;
+    outline:none; width:100%; }
+  .a-search input::placeholder { color:rgba(255,255,255,.3); }
+  .a-alumno { border-radius:14px; padding:14px 16px; margin-bottom:10px;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.07);
+    display:flex; align-items:center; gap:12px; cursor:pointer; }
+  .a-alumno-avatar { width:36px; height:36px; border-radius:10px;
+    background:linear-gradient(135deg,#6366f1,#3b82f6);
+    display:flex; align-items:center; justify-content:center; font-size:13px;
+    font-weight:700; color:#fff; flex-shrink:0; }
+  .a-alumno-name { font-size:13px; font-weight:600; color:#e2e8f0; }
+  .a-alumno-sub { font-size:11px; color:rgba(255,255,255,.35); }
+  .a-back-btn { width:32px; height:32px; border-radius:10px; background:rgba(255,255,255,.08);
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+  /* ═══════════════════════════════════════════════
+     OPCION B — BLANCO MODERNO / MATERIAL
+  ═══════════════════════════════════════════════ */
+  .b-login { width:100%; height:100%; background:#f8fafc;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px; }
+  .b-top-accent { width:100%; height:180px; background:linear-gradient(160deg,#1d4ed8,#2563eb,#3b82f6);
+    border-radius:0 0 40px 40px; position:absolute; top:0; left:0; }
+  .b-login-inner { position:relative; z-index:1; width:100%; display:flex; flex-direction:column; align-items:center; }
+  .b-logo-ring { width:72px; height:72px; background:#fff; border-radius:24px;
+    display:flex; align-items:center; justify-content:center; margin-bottom:12px;
+    box-shadow:0 8px 24px rgba(37,99,235,.3); margin-top:40px; }
+  .b-logo-inner { width:48px; height:48px; background:linear-gradient(135deg,#1d4ed8,#3b82f6);
+    border-radius:14px; display:flex; align-items:center; justify-content:center; }
+  .b-title { font-size:22px; font-weight:800; color:#fff; text-align:center; }
+  .b-subtitle { font-size:12px; color:rgba(255,255,255,.75); text-align:center; margin-bottom:32px; }
+  .b-card { background:#fff; border-radius:24px; padding:28px 24px; width:100%;
+    box-shadow:0 4px 32px rgba(0,0,0,.1); }
+  .b-label { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;
+    letter-spacing:.06em; margin-bottom:6px; }
+  .b-input { width:100%; border:2px solid #e2e8f0; border-radius:12px;
+    padding:11px 14px; font-size:13px; color:#1e293b; outline:none; margin-bottom:16px; }
+  .b-btn { width:100%; padding:13px; border-radius:12px; border:none; cursor:pointer;
+    font-size:14px; font-weight:700; background:linear-gradient(135deg,#1d4ed8,#2563eb);
+    color:#fff; box-shadow:0 4px 14px rgba(37,99,235,.35); }
+  .b-google-btn { width:100%; padding:12px; border-radius:12px; border:2px solid #e2e8f0;
+    cursor:pointer; font-size:13px; font-weight:600; background:#fff; color:#334155;
+    display:flex; align-items:center; justify-content:center; gap:10px; margin-top:10px; }
+
+  .b-home { width:100%; height:100%; background:#f1f5f9; display:flex; flex-direction:column; }
+  .b-header { background:linear-gradient(135deg,#1d4ed8,#2563eb); padding:20px 20px 28px; }
+  .b-header-greeting { font-size:12px; color:rgba(255,255,255,.7); }
+  .b-header-name { font-size:18px; font-weight:800; color:#fff; margin-top:2px; }
+  .b-header-badge { display:inline-block; background:rgba(255,255,255,.15); border-radius:8px;
+    padding:3px 10px; font-size:11px; color:rgba(255,255,255,.85); margin-top:6px; }
+  .b-body { flex:1; padding:0 16px; overflow:auto; margin-top:-12px; }
+  .b-option-cet { border-radius:20px; padding:20px; margin-bottom:14px; cursor:pointer;
+    background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.08);
+    display:flex; align-items:center; gap:14px; border-left:5px solid #2563eb; margin-top:16px; }
+  .b-option-inc { border-radius:20px; padding:20px; margin-bottom:14px; cursor:pointer;
+    background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.08);
+    display:flex; align-items:center; gap:14px; border-left:5px solid #16a34a; }
+  .b-icon-cet { width:44px; height:44px; border-radius:14px; background:#eff6ff;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .b-icon-inc { width:44px; height:44px; border-radius:14px; background:#f0fdf4;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .b-opt-title { font-size:16px; font-weight:800; color:#1e293b; }
+  .b-opt-sub { font-size:12px; color:#64748b; margin-top:2px; }
+  .b-chips { display:flex; gap:8px; flex-wrap:wrap; margin:0 16px 12px; }
+  .b-chip { padding:5px 12px; border-radius:999px; font-size:11px; font-weight:600; }
+  .b-chip-blue { background:#dbeafe; color:#1d4ed8; }
+  .b-chip-green { background:#dcfce7; color:#15803d; }
+
+  .b-list-header { background:#fff; padding:12px 16px; border-bottom:1px solid #e2e8f0;
+    display:flex; align-items:center; gap:10px; }
+  .b-back { width:32px; height:32px; border-radius:10px; background:#f1f5f9;
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .b-list-title { font-size:15px; font-weight:700; color:#1e293b; }
+  .b-list-sub { font-size:11px; color:#64748b; }
+  .b-alumno { background:#fff; border-radius:16px; padding:13px 16px; margin-bottom:10px;
+    display:flex; align-items:center; gap:12px; cursor:pointer;
+    box-shadow:0 1px 6px rgba(0,0,0,.06); }
+  .b-alumno-init { width:38px; height:38px; border-radius:12px; background:#2563eb;
+    display:flex; align-items:center; justify-content:center; font-size:13px;
+    font-weight:800; color:#fff; flex-shrink:0; }
+  .b-alumno-name { font-size:13px; font-weight:700; color:#1e293b; }
+  .b-alumno-sub { font-size:11px; color:#94a3b8; }
+  .b-cat { background:#fff; border-radius:14px; padding:14px 16px; margin-bottom:8px;
+    display:flex; align-items:center; gap:12px; cursor:pointer;
+    box-shadow:0 1px 4px rgba(0,0,0,.05); }
+  .b-cat-icon { width:36px; height:36px; border-radius:10px; background:#eff6ff;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .b-cat-name { font-size:12px; font-weight:600; color:#1e293b; }
+  .b-open-btn { margin-left:auto; background:#2563eb; color:#fff; border:none;
+    border-radius:8px; padding:5px 12px; font-size:11px; font-weight:600; cursor:pointer; }
+
+  /* ═══════════════════════════════════════════════
+     OPCION C — CÁLIDO / INSTITUCIONAL AMIGABLE
+  ═══════════════════════════════════════════════ */
+  .c-login { width:100%; height:100%; background:linear-gradient(180deg, #fef3c7 0%, #fde68a 30%, #fff 60%);
+    display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:0; }
+  .c-top { width:100%; padding:40px 28px 28px; display:flex; flex-direction:column; align-items:center; }
+  .c-logo-circle { width:80px; height:80px; background:linear-gradient(135deg,#f59e0b,#d97706);
+    border-radius:28px; display:flex; align-items:center; justify-content:center; margin-bottom:14px;
+    box-shadow:0 8px 24px rgba(245,158,11,.35); }
+  .c-inst-name { font-size:21px; font-weight:800; color:#92400e; text-align:center; line-height:1.2; }
+  .c-inst-sub { font-size:12px; color:#b45309; text-align:center; margin-top:4px; }
+  .c-form-wrap { background:#fff; border-radius:28px 28px 0 0; padding:28px 24px; width:100%;
+    flex:1; box-shadow:0 -4px 24px rgba(0,0,0,.08); }
+  .c-form-title { font-size:16px; font-weight:700; color:#1c1917; margin-bottom:20px; }
+  .c-label { font-size:12px; font-weight:600; color:#78716c; margin-bottom:5px; }
+  .c-input { width:100%; border:2px solid #e7e5e4; border-radius:14px;
+    padding:12px 14px; font-size:13px; color:#1c1917; outline:none; margin-bottom:14px;
+    background:#fafaf9; }
+  .c-btn { width:100%; padding:14px; border-radius:14px; border:none; cursor:pointer;
+    font-size:14px; font-weight:700; background:linear-gradient(135deg,#f59e0b,#d97706);
+    color:#fff; box-shadow:0 4px 14px rgba(245,158,11,.4); }
+  .c-google-btn { width:100%; padding:12px; border-radius:14px; border:2px solid #e7e5e4;
+    cursor:pointer; font-size:13px; font-weight:600; background:#fafaf9; color:#44403c;
+    display:flex; align-items:center; justify-content:center; gap:10px; margin-top:10px; }
+
+  .c-home { width:100%; height:100%; background:#fafaf9; display:flex; flex-direction:column; }
+  .c-header { background:linear-gradient(135deg,#f59e0b,#d97706); padding:18px 20px 22px; }
+  .c-header-hello { font-size:13px; color:rgba(255,255,255,.8); }
+  .c-header-name { font-size:18px; font-weight:800; color:#fff; margin-top:2px; }
+  .c-header-row { display:flex; align-items:flex-end; justify-content:space-between; }
+  .c-logout { font-size:11px; color:rgba(255,255,255,.7); text-decoration:underline; cursor:pointer; border:none; background:transparent; }
+  .c-body { flex:1; padding:16px; overflow:auto; }
+  .c-section-title { font-size:12px; font-weight:700; color:#78716c; text-transform:uppercase;
+    letter-spacing:.07em; margin-bottom:14px; }
+  .c-option { border-radius:22px; padding:22px 20px; margin-bottom:14px; cursor:pointer;
+    display:flex; align-items:center; gap:16px; position:relative; overflow:hidden; }
+  .c-option-cet { background:linear-gradient(135deg,#dbeafe,#bfdbfe); }
+  .c-option-inc { background:linear-gradient(135deg,#d1fae5,#a7f3d0); }
+  .c-option-icon-wrap { width:52px; height:52px; border-radius:18px; background:rgba(255,255,255,.6);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .c-opt-label { font-size:18px; font-weight:800; }
+  .c-opt-label-cet { color:#1d4ed8; }
+  .c-opt-label-inc { color:#065f46; }
+  .c-opt-desc { font-size:12px; margin-top:2px; }
+  .c-opt-desc-cet { color:#3b82f6; }
+  .c-opt-desc-inc { color:#059669; }
+  .c-arrow { margin-left:auto; width:32px; height:32px; border-radius:10px;
+    background:rgba(255,255,255,.5); display:flex; align-items:center; justify-content:center; }
+
+  .c-list-header { background:#f59e0b; padding:14px 16px;
+    display:flex; align-items:center; gap:10px; }
+  .c-back-btn { width:32px; height:32px; border-radius:10px; background:rgba(255,255,255,.2);
+    border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .c-list-title { font-size:15px; font-weight:800; color:#fff; }
+  .c-list-sub { font-size:11px; color:rgba(255,255,255,.75); }
+  .c-alumno { background:#fff; border-radius:18px; padding:14px 16px; margin-bottom:10px;
+    display:flex; align-items:center; gap:12px; cursor:pointer;
+    box-shadow:0 2px 10px rgba(0,0,0,.06); border:2px solid transparent; }
+  .c-alumno-init { width:40px; height:40px; border-radius:14px;
+    background:linear-gradient(135deg,#fbbf24,#f59e0b);
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+    font-weight:800; color:#fff; flex-shrink:0; }
+  .c-alumno-name { font-size:13px; font-weight:700; color:#1c1917; }
+  .c-alumno-sub { font-size:11px; color:#a8a29e; }
+  .c-cat { background:#fff; border-radius:16px; padding:14px 16px; margin-bottom:8px;
+    display:flex; align-items:center; gap:12px; cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,.05); }
+  .c-cat-icon { width:36px; height:36px; border-radius:12px; background:#fef3c7;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .c-cat-name { font-size:12px; font-weight:700; color:#1c1917; }
+  .c-open { margin-left:auto; background:#fef3c7; color:#92400e; border:none;
+    border-radius:8px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; }
+
+  /* SVG icons */
+  svg { display:block; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="show('A')">Opción A · Dark Glass</button>
+  <button class="nav-btn" onclick="show('B')">Opción B · Blanco Moderno</button>
+  <button class="nav-btn" onclick="show('C')">Opción C · Cálido Institucional</button>
+</div>
+
+<!-- ═══════════ OPCION A ═══════════ -->
+<div id="secA" class="section active">
+  <div class="section-title">Opción A — Dark Glassmorphism · Premium &amp; Profesional</div>
+  <div class="screens-row">
+
+    <!-- Login A -->
+    <div class="screen-wrap">
+      <div class="phone">
+        <div class="a-login">
+          <div class="a-card">
+            <div class="a-logo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="26" height="26">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/>
+              </svg>
+            </div>
+            <div class="a-title">Instituto Irina</div>
+            <div class="a-sub">Sistema de Gestión Pedagógica</div>
+            <div class="a-google-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              Ingresar con Google
+            </div>
+            <div style="text-align:center;font-size:11px;color:rgba(255,255,255,.25);margin-top:14px;">Solo @institutoirina.com</div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Login</div>
+    </div>
+
+    <!-- Home A -->
+    <div class="screen-wrap">
+      <div class="phone">
+        <div class="a-home">
+          <div class="a-header">
+            <div class="a-header-top">
+              <div>
+                <div class="a-header-name">Instituto Irina</div>
+                <div class="a-header-sub">Seleccioná una sección</div>
+              </div>
+              <div class="a-avatar">JR</div>
+            </div>
+          </div>
+          <div class="a-body">
+            <div class="a-section-label">Secciones</div>
+            <div class="a-option a-option-cet">
+              <div class="a-option-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/></svg>
+              </div>
+              <div class="a-option-text">
+                <div class="a-option-title">CET</div>
+                <div class="a-option-desc">Centro de Educación Terapéutica</div>
+              </div>
+              <svg class="a-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="a-option a-option-inc">
+              <div class="a-option-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.29 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <div class="a-option-text">
+                <div class="a-option-title">INCLUSION</div>
+                <div class="a-option-desc">Integración educativa</div>
+              </div>
+              <svg class="a-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="a-section-label" style="margin-top:8px;">Acceso rápido</div>
+            <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;font-size:12px;color:rgba(255,255,255,.45);text-align:center;">
+              Últimos 3 alumnos vistos aparecerán aquí
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Inicio</div>
+    </div>
+
+    <!-- Alumnos A -->
+    <div class="screen-wrap">
+      <div class="phone">
+        <div class="a-home">
+          <div class="a-header">
+            <div class="a-header-top">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="a-back-btn">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                </div>
+                <div>
+                  <div class="a-header-name">NIÑOS · TURNO MAÑANA</div>
+                  <div class="a-header-sub">Seleccioná un alumno</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="a-body">
+            <div class="a-search">
+              <svg class="a-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>
+              <input placeholder="Buscar alumno..." readonly>
+            </div>
+            <div class="a-alumno">
+              <div class="a-alumno-avatar">MP</div>
+              <div><div class="a-alumno-name">MARIA PAZ CALIVAR</div><div class="a-alumno-sub">Turno mañana · Niños</div></div>
+              <svg style="margin-left:auto;color:rgba(255,255,255,.2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="a-alumno">
+              <div class="a-alumno-avatar">MS</div>
+              <div><div class="a-alumno-name">MATEO SEGURA</div><div class="a-alumno-sub">Turno mañana · Niños</div></div>
+              <svg style="margin-left:auto;color:rgba(255,255,255,.2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="a-alumno">
+              <div class="a-alumno-avatar">RP</div>
+              <div><div class="a-alumno-name">RENATA PALACIOS</div><div class="a-alumno-sub">Turno mañana · Niños</div></div>
+              <svg style="margin-left:auto;color:rgba(255,255,255,.2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="a-alumno">
+              <div class="a-alumno-avatar">SJ</div>
+              <div><div class="a-alumno-name">SALVADOR JUNCO</div><div class="a-alumno-sub">Turno mañana · Niños</div></div>
+              <svg style="margin-left:auto;color:rgba(255,255,255,.2)" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Lista de alumnos</div>
+    </div>
+
+  </div><!-- end row -->
+  <div style="text-align:center;margin-top:28px;padding:20px;background:rgba(255,255,255,.04);border-radius:16px;max-width:800px;margin:28px auto 0;">
+    <div style="font-size:13px;color:#94a3b8;line-height:1.7;">
+      <strong style="color:#e2e8f0;">Opción A · Dark Glassmorphism</strong><br>
+      Fondo oscuro profundo · Tarjetas con efecto cristal · Gradientes de color · Tipografía clara sobre oscuro<br>
+      <em>Ideal para uso profesional / nocturno. Se percibe como app premium.</em>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ OPCION B ═══════════ -->
+<div id="secB" class="section">
+  <div class="section-title">Opción B — Blanco Moderno · Material Design</div>
+  <div class="screens-row">
+
+    <!-- Login B -->
+    <div class="screen-wrap">
+      <div class="phone" style="position:relative;background:#f8fafc;">
+        <div class="b-login">
+          <div class="b-top-accent"></div>
+          <div class="b-login-inner">
+            <div class="b-logo-ring"><div class="b-logo-inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="24" height="24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/>
+              </svg>
+            </div></div>
+            <div class="b-title">Instituto Irina</div>
+            <div class="b-subtitle">Sistema de Gestión Pedagógica</div>
+            <div class="b-card">
+              <div class="b-google-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Ingresar con Google
+              </div>
+              <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:14px;">Solo cuentas @institutoirina.com</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Login</div>
+    </div>
+
+    <!-- Home B -->
+    <div class="screen-wrap">
+      <div class="phone" style="background:#f1f5f9;">
+        <div class="b-home">
+          <div class="b-header">
+            <div class="b-header-greeting">Bienvenido/a</div>
+            <div class="b-header-row">
+              <div>
+                <div class="b-header-name">julio.reinoso</div>
+                <div class="b-header-badge">@institutoirina.com</div>
+              </div>
+              <button class="b-logout" style="background:rgba(255,255,255,.15);border:none;cursor:pointer;border-radius:10px;padding:8px 12px;color:#fff;font-size:11px;">Salir</button>
+            </div>
+          </div>
+          <div class="b-body">
+            <div style="margin-top:16px;margin-bottom:8px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em;">Secciones disponibles</div>
+            <div class="b-option-cet">
+              <div class="b-icon-cet">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/></svg>
+              </div>
+              <div><div class="b-opt-title">CET</div><div class="b-opt-sub">Centro Educación Terapéutica</div></div>
+              <svg style="margin-left:auto;color:#94a3b8" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="b-option-inc">
+              <div class="b-icon-inc">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.29 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <div><div class="b-opt-title">INCLUSION</div><div class="b-opt-sub">Integración educativa</div></div>
+              <svg style="margin-left:auto;color:#94a3b8" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Inicio</div>
+    </div>
+
+    <!-- Categorias B -->
+    <div class="screen-wrap">
+      <div class="phone" style="background:#f1f5f9;">
+        <div class="b-home">
+          <div class="b-list-header">
+            <div class="b-back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></div>
+            <div><div class="b-list-title">MATEO SEGURA</div><div class="b-list-sub">NIÑOS · TURNO MAÑANA</div></div>
+          </div>
+          <div class="b-body" style="margin-top:0;">
+            <div style="height:12px;"></div>
+            <div class="b-cat"><div class="b-cat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg></div><div class="b-cat-name">EVALUACION ACTUAL</div><button class="b-open-btn">Abrir</button></div>
+            <div class="b-cat"><div class="b-cat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg></div><div class="b-cat-name">PROYECTOS DE SALAS</div><button class="b-open-btn">Abrir</button></div>
+            <div class="b-cat"><div class="b-cat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="b-cat-name">INFORMES CUATRIMESTRALES</div><button class="b-open-btn">Abrir</button></div>
+            <div class="b-cat"><div class="b-cat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="b-cat-name">PLANIFICACIONES ANUALES</div><button class="b-open-btn">Abrir</button></div>
+            <div class="b-cat"><div class="b-cat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div class="b-cat-name">PLAN DE TRATAMIENTO</div><button class="b-open-btn">Abrir</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Carpetas del alumno</div>
+    </div>
+
+  </div>
+  <div style="text-align:center;margin-top:28px;padding:20px;background:rgba(255,255,255,.04);border-radius:16px;max-width:800px;margin:28px auto 0;">
+    <div style="font-size:13px;color:#94a3b8;line-height:1.7;">
+      <strong style="color:#e2e8f0;">Opción B · Blanco Moderno / Material Design</strong><br>
+      Fondo blanco · Header de color · Cards con sombras suaves · Estilo familiar para usuarios de Google Apps<br>
+      <em>Fácil de leer · Contraste alto · Ideal para uso diurno y usuarios de todas las edades.</em>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ OPCION C ═══════════ -->
+<div id="secC" class="section">
+  <div class="section-title">Opción C — Cálido Institucional · Amigable</div>
+  <div class="screens-row">
+
+    <!-- Login C -->
+    <div class="screen-wrap">
+      <div class="phone" style="background:#fef3c7;">
+        <div class="c-login">
+          <div class="c-top">
+            <div class="c-logo-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" width="36" height="36">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/>
+              </svg>
+            </div>
+            <div class="c-inst-name">Instituto Irina</div>
+            <div class="c-inst-sub">Sistema de Gestión 2026</div>
+          </div>
+          <div class="c-form-wrap">
+            <div class="c-form-title">Ingresá con tu cuenta</div>
+            <div class="c-google-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              Ingresar con Google
+            </div>
+            <div style="text-align:center;font-size:11px;color:#a8a29e;margin-top:16px;">Solo cuentas @institutoirina.com</div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Login</div>
+    </div>
+
+    <!-- Home C -->
+    <div class="screen-wrap">
+      <div class="phone" style="background:#fafaf9;">
+        <div class="c-home">
+          <div class="c-header">
+            <div class="c-header-row">
+              <div>
+                <div class="c-header-hello">Hola,</div>
+                <div class="c-header-name">julio.reinoso</div>
+              </div>
+              <button class="c-logout">Salir</button>
+            </div>
+          </div>
+          <div class="c-body">
+            <div class="c-section-title">Seleccioná una sección</div>
+            <div class="c-option c-option-cet">
+              <div class="c-option-icon-wrap">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/></svg>
+              </div>
+              <div>
+                <div class="c-opt-label c-opt-label-cet">CET</div>
+                <div class="c-opt-desc c-opt-desc-cet">Centro Educación Terapéutica</div>
+              </div>
+              <div class="c-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+            </div>
+            <div class="c-option c-option-inc">
+              <div class="c-option-icon-wrap">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.29 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <div>
+                <div class="c-opt-label c-opt-label-inc">INCLUSION</div>
+                <div class="c-opt-desc c-opt-desc-inc">Integración educativa</div>
+              </div>
+              <div class="c-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Inicio</div>
+    </div>
+
+    <!-- Alumnos C -->
+    <div class="screen-wrap">
+      <div class="phone" style="background:#fafaf9;">
+        <div class="c-home">
+          <div class="c-list-header">
+            <div class="c-back-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></div>
+            <div><div class="c-list-title">NIÑOS · TURNO MAÑANA</div><div style="font-size:10px;color:rgba(255,255,255,.7);">Seleccioná un alumno</div></div>
+          </div>
+          <div class="c-body">
+            <div class="c-alumno">
+              <div class="c-alumno-init">MP</div>
+              <div><div class="c-alumno-name">MARIA PAZ CALIVAR</div><div class="c-alumno-sub">Turno mañana</div></div>
+              <svg style="margin-left:auto;color:#d4d2cf" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="c-alumno">
+              <div class="c-alumno-init">MS</div>
+              <div><div class="c-alumno-name">MATEO SEGURA</div><div class="c-alumno-sub">Turno mañana</div></div>
+              <svg style="margin-left:auto;color:#d4d2cf" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="c-alumno">
+              <div class="c-alumno-init">RP</div>
+              <div><div class="c-alumno-name">RENATA PALACIOS</div><div class="c-alumno-sub">Turno mañana</div></div>
+              <svg style="margin-left:auto;color:#d4d2cf" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="c-alumno">
+              <div class="c-alumno-init">SJ</div>
+              <div><div class="c-alumno-name">SALVADOR JUNCO</div><div class="c-alumno-sub">Turno mañana</div></div>
+              <svg style="margin-left:auto;color:#d4d2cf" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+            <div class="c-alumno">
+              <div class="c-alumno-init">TB</div>
+              <div><div class="c-alumno-name">TUGCE BRIZUELA</div><div class="c-alumno-sub">Turno mañana</div></div>
+              <svg style="margin-left:auto;color:#d4d2cf" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="screen-label">Lista de alumnos</div>
+    </div>
+
+  </div>
+  <div style="text-align:center;margin-top:28px;padding:20px;background:rgba(255,255,255,.04);border-radius:16px;max-width:800px;margin:28px auto 0;">
+    <div style="font-size:13px;color:#94a3b8;line-height:1.7;">
+      <strong style="color:#e2e8f0;">Opción C · Cálido Institucional</strong><br>
+      Tonos ámbar/dorado · Fondos blancos cálidos · Tarjetas redondeadas grandes · Tipografía amigable<br>
+      <em>Más accesible y cercano · Ideal para entornos educativos y usuarios de todas las edades.</em>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,36 +1,72 @@
 interface OptionCardProps {
   label: string;
-  color?: "blue" | "green" | "purple" | "orange" | "indigo" | "teal";
+  color?: "blue" | "green" | "purple" | "orange" | "indigo" | "teal" | "amber";
   icon?: React.ReactNode;
   onClick: () => void;
 }
 
-const colorMap: Record<string, string> = {
-  blue:   "bg-blue-600 hover:bg-blue-700 active:bg-blue-800",
-  green:  "bg-green-600 hover:bg-green-700 active:bg-green-800",
-  purple: "bg-purple-600 hover:bg-purple-700 active:bg-purple-800",
-  orange: "bg-orange-500 hover:bg-orange-600 active:bg-orange-700",
-  indigo: "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800",
-  teal:   "bg-teal-600 hover:bg-teal-700 active:bg-teal-800",
+const bgMap: Record<string, string> = {
+  blue:   "linear-gradient(135deg, #dbeafe, #bfdbfe)",
+  green:  "linear-gradient(135deg, #d1fae5, #a7f3d0)",
+  purple: "linear-gradient(135deg, #ede9fe, #ddd6fe)",
+  orange: "linear-gradient(135deg, #ffedd5, #fed7aa)",
+  indigo: "linear-gradient(135deg, #e0e7ff, #c7d2fe)",
+  teal:   "linear-gradient(135deg, #ccfbf1, #99f6e4)",
+  amber:  "linear-gradient(135deg, #fef3c7, #fde68a)",
+};
+
+const iconBgMap: Record<string, string> = {
+  blue:   "rgba(255,255,255,0.65)",
+  green:  "rgba(255,255,255,0.65)",
+  purple: "rgba(255,255,255,0.65)",
+  orange: "rgba(255,255,255,0.65)",
+  indigo: "rgba(255,255,255,0.65)",
+  teal:   "rgba(255,255,255,0.65)",
+  amber:  "rgba(255,255,255,0.65)",
+};
+
+const textMap: Record<string, string> = {
+  blue:   "#1d4ed8",
+  green:  "#065f46",
+  purple: "#5b21b6",
+  orange: "#c2410c",
+  indigo: "#3730a3",
+  teal:   "#0f766e",
+  amber:  "#92400e",
+};
+
+const iconColorMap: Record<string, string> = {
+  blue:   "#2563eb",
+  green:  "#059669",
+  purple: "#7c3aed",
+  orange: "#ea580c",
+  indigo: "#4338ca",
+  teal:   "#0d9488",
+  amber:  "#d97706",
 };
 
 export default function OptionCard({ label, color = "blue", icon, onClick }: OptionCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-white font-semibold rounded-2xl px-5 py-4 text-left
-                  flex items-center gap-4 shadow-md transition-all duration-150
-                  active:scale-[0.98] select-none ${colorMap[color]}`}
+      className="w-full font-semibold rounded-3xl px-5 py-4 text-left
+                 flex items-center gap-4 shadow-sm transition-all duration-150
+                 active:scale-[0.97] select-none border-0"
+      style={{ background: bgMap[color] }}
     >
       {icon && (
-        <span className="flex-shrink-0 w-10 h-10 bg-white bg-opacity-20 rounded-xl
-                         flex items-center justify-center">
+        <span
+          className="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
+          style={{ background: iconBgMap[color], color: iconColorMap[color] }}
+        >
           {icon}
         </span>
       )}
-      <span className="text-base leading-snug">{label}</span>
-      <svg className="ml-auto flex-shrink-0 w-5 h-5 opacity-70" fill="none"
-           stroke="currentColor" viewBox="0 0 24 24">
+      <span className="text-base font-bold leading-snug flex-1" style={{ color: textMap[color] }}>
+        {label}
+      </span>
+      <svg className="ml-auto flex-shrink-0 w-5 h-5" fill="none"
+           stroke={textMap[color]} viewBox="0 0 24 24" style={{ opacity: 0.5 }}>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
               d="M9 5l7 7-7 7" />
       </svg>

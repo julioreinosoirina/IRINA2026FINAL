@@ -11,10 +11,9 @@ import {
 } from "../services/driveService";
 import type { DriveFile, AreaLink } from "../services/driveService";
 
-// ── Tipos de vista ──────────────────────────────────────────────────────────
 // Estructura real en Drive:
 //   CET / [NIÑOS|JOVENES] / [TURNO MAÑANA|TURNO TARDE] / CATEGORIA / (AREA) / ALUMNO
-//   INCLUSION / [NIVEL PRIMARIO|NIVEL SECUNDARIO|...] / ALUMNO / [carpetas del alumno]
+//   INCLUSION / [NIVEL PRIMARIO|...] / ALUMNO / [carpetas del alumno]
 
 type Vista =
   | { tipo: "inicio" }
@@ -25,7 +24,7 @@ type Vista =
   | { tipo: "cet_areas"; sector: string; turno: string; alumno: string; categoria: string }
   | { tipo: "inclusion_grupos" }
   | { tipo: "inclusion_alumnos"; grupo: string }
-  | { tipo: "inclusion_docs"; grupo: string; alumno: string };
+  | { tipo: "inclusion_docs"; grupo: string; alumno: string; alumnoId: string };
 
 interface AppMainProps {
   userEmail: string;
@@ -33,7 +32,6 @@ interface AppMainProps {
   onLogout: () => void;
 }
 
-// ── Componente principal ────────────────────────────────────────────────────
 export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
   const [historial, setHistorial] = useState<Vista[]>([{ tipo: "inicio" }]);
   const [folderItems, setFolderItems] = useState<DriveFile[]>([]);
@@ -64,7 +62,6 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
     onLogout();
   }
 
-  // ── Carga dinámica desde Drive ────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -106,11 +103,7 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
         }
 
         else if (vista.tipo === "inclusion_docs") {
-          const id = await resolvePath(
-            ["INCLUSION", vista.grupo, vista.alumno], token, SISTEMA_FOLDER_ID
-          );
-          if (!id) throw new Error(`No se encontró la carpeta de ${vista.alumno}`);
-          const items = await listSubfolders(id, token);
+          const items = await listSubfolders(vista.alumnoId, token);
           if (!cancelled) setFolderItems(items);
         }
 
@@ -146,7 +139,6 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
     return () => { cancelled = true; };
   }, [vista, token]);
 
-  // ── Header info ────────────────────────────────────────────────────────────
   function getHeaderInfo(): { title: string; subtitle?: string } {
     switch (vista.tipo) {
       case "inicio":           return { title: "Instituto Irina", subtitle: "Seleccioná una sección" };
@@ -163,7 +155,6 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
 
   const { title, subtitle } = getHeaderInfo();
 
-  // ── Renderizado ────────────────────────────────────────────────────────────
   function renderContenido() {
     switch (vista.tipo) {
 
@@ -268,6 +259,7 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
                   tipo: "inclusion_docs",
                   grupo: vista.grupo,
                   alumno: a.name,
+                  alumnoId: a.id,
                 })} />
             ))}
           </div>
@@ -292,7 +284,7 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ background: "#fafaf9" }}>
       <Header
         title={title}
         subtitle={subtitle}
@@ -315,20 +307,21 @@ function DriveLink({ label, url }: { label: string; url: string }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="w-full bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50
-                 active:bg-blue-100 text-gray-800 font-medium rounded-2xl px-5 py-4
+      className="w-full bg-white rounded-3xl px-5 py-4
                  flex items-center gap-4 shadow-sm transition-all duration-150
-                 active:scale-[0.98] select-none"
+                 active:scale-[0.97] select-none"
+      style={{ border: "2px solid #e7e5e4", textDecoration: "none" }}
     >
-      <span className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+      <span className="flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center"
+        style={{ background: "#fef3c7" }}>
         <FolderOpenIcon />
       </span>
-      <span className="text-sm leading-snug text-left flex-1">{label}</span>
-      <svg className="flex-shrink-0 w-5 h-5 text-blue-500" fill="none"
-           stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-      </svg>
+      <span className="text-sm font-bold leading-snug text-left flex-1"
+        style={{ color: "#1c1917" }}>{label}</span>
+      <span className="flex-shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold whitespace-nowrap"
+        style={{ background: "#fef3c7", color: "#92400e" }}>
+        Abrir
+      </span>
     </a>
   );
 }
@@ -336,18 +329,19 @@ function DriveLink({ label, url }: { label: string; url: string }) {
 function LoadingState({ texto }: { texto: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4">
-      <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-      <p className="text-gray-500 text-sm">{texto}</p>
+      <div className="w-10 h-10 border-4 rounded-full animate-spin"
+        style={{ borderColor: "#fde68a", borderTopColor: "#f59e0b" }} />
+      <p className="text-sm" style={{ color: "#a8a29e" }}>{texto}</p>
     </div>
   );
 }
 
 function ErrorState({ mensaje, onRetry }: { mensaje: string; onRetry: () => void }) {
   return (
-    <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-6 text-center space-y-3">
+    <div className="bg-red-50 border border-red-200 rounded-3xl px-5 py-6 text-center space-y-3">
       <p className="text-red-700 text-sm leading-relaxed">{mensaje}</p>
       <button onClick={onRetry}
-        className="text-sm text-blue-600 underline hover:text-blue-800">
+        className="text-sm underline" style={{ color: "#f59e0b" }}>
         Reintentar
       </button>
     </div>
@@ -356,8 +350,9 @@ function ErrorState({ mensaje, onRetry }: { mensaje: string; onRetry: () => void
 
 function EmptyState({ texto }: { texto: string }) {
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-2xl px-5 py-10 text-center">
-      <p className="text-gray-400 text-sm">{texto}</p>
+    <div className="rounded-3xl px-5 py-10 text-center"
+      style={{ background: "#f5f5f4", border: "2px solid #e7e5e4" }}>
+      <p className="text-sm" style={{ color: "#a8a29e" }}>{texto}</p>
     </div>
   );
 }
@@ -366,7 +361,7 @@ function EmptyState({ texto }: { texto: string }) {
 
 function SchoolIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 6.075-4.925 11-11 11S1 19.075 1 13c0-.937.117-1.848.34-2.717L12 14z" />
@@ -375,7 +370,7 @@ function SchoolIcon() {
 }
 function InclusionIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
@@ -383,7 +378,7 @@ function InclusionIcon() {
 }
 function SunIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
     </svg>
@@ -391,7 +386,7 @@ function SunIcon() {
 }
 function MoonIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
     </svg>
@@ -399,7 +394,7 @@ function MoonIcon() {
 }
 function NinosIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <circle cx="12" cy="7" r="4" strokeWidth={2} strokeLinecap="round" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
@@ -408,7 +403,7 @@ function NinosIcon() {
 }
 function JovenesIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
     </svg>
@@ -416,7 +411,7 @@ function JovenesIcon() {
 }
 function AlumnoIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
@@ -424,7 +419,7 @@ function AlumnoIcon() {
 }
 function GrupoIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
     </svg>
@@ -432,7 +427,7 @@ function GrupoIcon() {
 }
 function CarpetaIcon() {
   return (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
     </svg>
@@ -440,7 +435,7 @@ function CarpetaIcon() {
 }
 function FolderOpenIcon() {
   return (
-    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg className="w-5 h-5" fill="none" stroke="#d97706" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
     </svg>

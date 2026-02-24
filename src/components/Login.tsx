@@ -63,30 +63,32 @@ export default function Login({ onLogin }: LoginProps) {
   const isConfigured = !GOOGLE_CLIENT_ID.startsWith("TU_");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-8">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-blue-800 rounded-full flex items-center justify-center mb-4">
-            <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 14l9-5-9-5-9 5 9 5z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 14l6.16-3.422A12.083 12.083 0 0121 13c0 6.075-4.925 11-11 11S1 19.075 1 13c0-.937.117-1.848.34-2.717L12 14z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-800">Instituto Irina</h1>
-          <p className="text-sm text-gray-500 mt-1 text-center">Sistema de Gestión Pedagógica</p>
+    <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(180deg, #fef3c7 0%, #fde68a 35%, #fff7ed 60%, #fff 100%)" }}>
+      <div className="flex flex-col items-center pt-14 pb-8 px-6">
+        <div className="mb-5">
+          <img
+            src="/logo.png"
+            alt="Instituto Irina"
+            className="w-24 h-24 object-contain drop-shadow-lg"
+            style={{ borderRadius: "24px" }}
+          />
         </div>
+        <h1 className="text-2xl font-extrabold text-amber-900 text-center leading-tight">Instituto Irina</h1>
+        <p className="text-sm text-amber-700 text-center mt-1">Sistema de Gestión 2026</p>
+      </div>
+
+      <div className="flex-1 bg-white rounded-t-3xl shadow-xl px-6 pt-8 pb-10" style={{ borderTopLeftRadius: "28px", borderTopRightRadius: "28px" }}>
+        <h2 className="text-base font-bold text-stone-800 mb-6">Ingresá con tu cuenta institucional</h2>
 
         {!isConfigured && (
-          <div className="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 text-xs rounded-xl px-4 py-3">
+          <div className="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 text-xs rounded-2xl px-4 py-3">
             <strong>Pendiente de configuración:</strong> editar <code>src/config.ts</code> con el
             Client ID de Google y el ID de la carpeta SISTEMA.
           </div>
         )}
 
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-2xl px-4 py-3">
             {error}
           </div>
         )}
@@ -94,16 +96,17 @@ export default function Login({ onLogin }: LoginProps) {
         <button
           onClick={handleSignIn}
           disabled={loading || !gisReady || !isConfigured}
-          className="w-full flex items-center justify-center gap-3 bg-white border-2 border-gray-200
-                     hover:border-blue-400 hover:bg-blue-50
+          className="w-full flex items-center justify-center gap-3
+                     border-2 border-stone-200 bg-stone-50
+                     hover:border-amber-400 hover:bg-amber-50
                      disabled:opacity-50 disabled:cursor-not-allowed
-                     text-gray-700 font-semibold py-3 px-4 rounded-xl transition-all duration-150"
+                     text-stone-700 font-semibold py-3.5 px-4 rounded-2xl transition-all duration-150"
         >
           <GoogleIcon />
           {!gisReady ? "Cargando..." : loading ? "Verificando..." : "Ingresar con Google"}
         </button>
 
-        <p className="text-xs text-gray-400 text-center mt-4">
+        <p className="text-xs text-stone-400 text-center mt-5">
           Solo cuentas @{INSTITUTO_DOMAIN}
         </p>
       </div>
