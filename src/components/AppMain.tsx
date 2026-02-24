@@ -2,17 +2,30 @@ import { useEffect, useState } from "react";
 import Header from "./Header";
 import OptionCard from "./OptionCard";
 import { CATEGORIAS, CATEGORIA_REFERENCIA, SISTEMA_FOLDER_ID } from "../config";
-import { listSubfolders, resolvePath, driveUrl, clearCache } from "../services/driveService";
-import type { DriveFile } from "../services/driveService";
+import {
+  listSubfolders,
+  resolveAreaLinks,
+  resolvePath,
+  driveUrl,
+  clearCache,
+} from "../services/driveService";
+import type { DriveFile, AreaLink } from "../services/driveService";
 
-// ── Tipos de vista ──────────────────────────────────────────
+// ── Tipos de vista ──────────────────────────────────────────────────────────
+// Estructura real en Drive:
+//   CET / [NIÑOS|JOVENES] / [TURNO MAÑANA|TURNO TARDE] / CATEGORIA / (AREA) / ALUMNO
+//   INCLUSION / [NIVEL PRIMARIO|NIVEL SECUNDARIO|...] / ALUMNO / [carpetas del alumno]
+
 type Vista =
   | { tipo: "inicio" }
-  | { tipo: "cet_turno" }
-  | { tipo: "cet_sector"; turno: string }
-  | { tipo: "alumnos"; drivePath: string[]; label: string }
-  | { tipo: "categorias"; drivePath: string[]; alumno: string; label: string }
-  | { tipo: "areas"; drivePath: string[]; alumno: string; categoria: string; label: string };
+  | { tipo: "cet_sector" }
+  | { tipo: "cet_turno"; sector: string }
+  | { tipo: "cet_alumnos"; sector: string; turno: string }
+  | { tipo: "cet_categorias"; sector: string; turno: string; alumno: string }
+  | { tipo: "cet_areas"; sector: string; turno: string; alumno: string; categoria: string }
+  | { tipo: "inclusion_grupos" }
+  | { tipo: "inclusion_alumnos"; grupo: string }
+  | { tipo: "inclusion_docs"; grupo: string; alumno: string };
 
 interface AppMainProps {
   userEmail: string;
@@ -20,10 +33,11 @@ interface AppMainProps {
   onLogout: () => void;
 }
 
-// ── Componente principal ────────────────────────────────────
+// ── Componente principal ────────────────────────────────────────────────────
 export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
   const [historial, setHistorial] = useState<Vista[]>([{ tipo: "inicio" }]);
-  const [items, setItems] = useState<DriveFile[]>([]);
+  const [folderItems, setFolderItems] = useState<DriveFile[]>([]);
+  const [areaItems, setAreaItems] = useState<AreaLink[]>([]);
   const [loadingItems, setLoadingItems] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -31,14 +45,18 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
 
   function navegar(v: Vista) {
     setHistorial((h) => [...h, v]);
-    setItems([]);
+    setFolderItems([]);
+    setAreaItems([]);
     setErrorMsg(null);
   }
 
   function volver() {
-    setHistorial((h) => (h.length > 1 ? h.slice(0, -1) : h));
-    setItems([]);
-    setErrorMsg(null);
+    if (historial.length > 1) {
+      setHistorial((h) => h.slice(0, -1));
+      setFolderItems([]);
+      setAreaItems([]);
+      setErrorMsg(null);
+    }
   }
 
   function handleLogout() {
@@ -46,41 +64,78 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
     onLogout();
   }
 
-  // Carga dinámica desde Drive cuando la vista lo requiere
+  // ── Carga dinámica desde Drive ────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
     async function cargar() {
-      if (vista.tipo !== "alumnos" && vista.tipo !== "areas") return;
+      const needsLoad = [
+        "cet_alumnos", "inclusion_grupos", "inclusion_alumnos",
+        "inclusion_docs", "cet_areas",
+      ].includes(vista.tipo);
+      if (!needsLoad) return;
 
       setLoadingItems(true);
       setErrorMsg(null);
-      setItems([]);
+      setFolderItems([]);
+      setAreaItems([]);
 
       try {
-        let parentId: string | null = null;
-
-        if (vista.tipo === "alumnos") {
-          parentId = await resolvePath(vista.drivePath, token, SISTEMA_FOLDER_ID);
-        } else if (vista.tipo === "areas") {
-          parentId = await resolvePath(vista.drivePath, token, SISTEMA_FOLDER_ID);
+        if (vista.tipo === "cet_alumnos") {
+          const id = await resolvePath(
+            ["CET", vista.sector, vista.turno, CATEGORIA_REFERENCIA],
+            token, SISTEMA_FOLDER_ID
+          );
+          if (!id) throw new Error(`No se encontró: CET/${vista.sector}/${vista.turno}/${CATEGORIA_REFERENCIA}`);
+          const items = await listSubfolders(id, token);
+          if (!cancelled) setFolderItems(items);
         }
 
-        if (!parentId) {
-          if (!cancelled) setErrorMsg("No se encontró la carpeta raíz SISTEMA. Verificá el ID en config.ts.");
-          return;
+        else if (vista.tipo === "inclusion_grupos") {
+          const id = await resolvePath(["INCLUSION"], token, SISTEMA_FOLDER_ID);
+          if (!id) throw new Error("No se encontró la carpeta INCLUSION");
+          const items = await listSubfolders(id, token);
+          if (!cancelled) setFolderItems(items);
         }
 
-        const lista = await listSubfolders(parentId, token);
-        if (!cancelled) setItems(lista);
+        else if (vista.tipo === "inclusion_alumnos") {
+          const id = await resolvePath(["INCLUSION", vista.grupo], token, SISTEMA_FOLDER_ID);
+          if (!id) throw new Error(`No se encontró: INCLUSION/${vista.grupo}`);
+          const items = await listSubfolders(id, token);
+          if (!cancelled) setFolderItems(items);
+        }
+
+        else if (vista.tipo === "inclusion_docs") {
+          const id = await resolvePath(
+            ["INCLUSION", vista.grupo, vista.alumno], token, SISTEMA_FOLDER_ID
+          );
+          if (!id) throw new Error(`No se encontró la carpeta de ${vista.alumno}`);
+          const items = await listSubfolders(id, token);
+          if (!cancelled) setFolderItems(items);
+        }
+
+        else if (vista.tipo === "cet_areas") {
+          const links = await resolveAreaLinks(
+            ["CET", vista.sector, vista.turno, vista.categoria],
+            vista.alumno,
+            token,
+            SISTEMA_FOLDER_ID
+          );
+          if (!cancelled) {
+            if (links.length === 0) {
+              setErrorMsg(`No se encontró la carpeta de ${vista.alumno} en ${vista.categoria}.`);
+            } else {
+              setAreaItems(links);
+            }
+          }
+        }
+
       } catch (e: unknown) {
         if (cancelled) return;
         if (e instanceof Error && e.message === "TOKEN_EXPIRED") {
           setErrorMsg("La sesión expiró. Por favor, volvé a ingresar.");
-        } else if (e instanceof Error && e.message.startsWith("FOLDER_NOT_FOUND:")) {
-          setErrorMsg(e.message.replace("FOLDER_NOT_FOUND: ", ""));
         } else {
-          setErrorMsg("Error al conectar con Google Drive. Verificá tu conexión.");
+          setErrorMsg(e instanceof Error ? e.message : "Error al conectar con Google Drive.");
         }
       } finally {
         if (!cancelled) setLoadingItems(false);
@@ -91,21 +146,24 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
     return () => { cancelled = true; };
   }, [vista, token]);
 
-  // ── Header info ─────────────────────────────────────────
+  // ── Header info ────────────────────────────────────────────────────────────
   function getHeaderInfo(): { title: string; subtitle?: string } {
     switch (vista.tipo) {
-      case "inicio":      return { title: "Instituto Irina", subtitle: "Seleccioná una sección" };
-      case "cet_turno":   return { title: "CET", subtitle: "Seleccioná el turno" };
-      case "cet_sector":  return { title: vista.turno, subtitle: "Seleccioná el sector" };
-      case "alumnos":     return { title: vista.label, subtitle: "Seleccioná un alumno" };
-      case "categorias":  return { title: vista.alumno.toUpperCase(), subtitle: vista.label };
-      case "areas":       return { title: vista.categoria, subtitle: `${vista.alumno} · ${vista.label}` };
+      case "inicio":           return { title: "Instituto Irina", subtitle: "Seleccioná una sección" };
+      case "cet_sector":       return { title: "CET", subtitle: "Seleccioná el sector" };
+      case "cet_turno":        return { title: vista.sector, subtitle: "Seleccioná el turno" };
+      case "cet_alumnos":      return { title: `${vista.sector} · ${vista.turno}`, subtitle: "Seleccioná un alumno" };
+      case "cet_categorias":   return { title: vista.alumno, subtitle: `${vista.sector} · ${vista.turno}` };
+      case "cet_areas":        return { title: vista.categoria, subtitle: vista.alumno };
+      case "inclusion_grupos": return { title: "INCLUSION", subtitle: "Seleccioná el nivel" };
+      case "inclusion_alumnos":return { title: vista.grupo, subtitle: "Seleccioná un alumno" };
+      case "inclusion_docs":   return { title: vista.alumno, subtitle: vista.grupo };
     }
   }
 
   const { title, subtitle } = getHeaderInfo();
 
-  // ── Renderizado por vista ────────────────────────────────
+  // ── Renderizado ────────────────────────────────────────────────────────────
   function renderContenido() {
     switch (vista.tipo) {
 
@@ -113,13 +171,19 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
         return (
           <div className="space-y-4">
             <OptionCard label="CET" color="blue" icon={<SchoolIcon />}
-              onClick={() => navegar({ tipo: "cet_turno" })} />
+              onClick={() => navegar({ tipo: "cet_sector" })} />
             <OptionCard label="INCLUSION" color="green" icon={<InclusionIcon />}
-              onClick={() => navegar({
-                tipo: "alumnos",
-                drivePath: ["INCLUSION"],
-                label: "INCLUSION",
-              })} />
+              onClick={() => navegar({ tipo: "inclusion_grupos" })} />
+          </div>
+        );
+
+      case "cet_sector":
+        return (
+          <div className="space-y-4">
+            <OptionCard label="NIÑOS" color="teal" icon={<NinosIcon />}
+              onClick={() => navegar({ tipo: "cet_turno", sector: "NIÑOS" })} />
+            <OptionCard label="JOVENES" color="purple" icon={<JovenesIcon />}
+              onClick={() => navegar({ tipo: "cet_turno", sector: "JOVENES" })} />
           </div>
         );
 
@@ -127,117 +191,104 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
         return (
           <div className="space-y-4">
             <OptionCard label="TURNO MAÑANA" color="orange" icon={<SunIcon />}
-              onClick={() => navegar({ tipo: "cet_sector", turno: "TURNO MAÑANA" })} />
+              onClick={() => navegar({ tipo: "cet_alumnos", sector: vista.sector, turno: "TURNO MAÑANA" })} />
             <OptionCard label="TURNO TARDE" color="indigo" icon={<MoonIcon />}
-              onClick={() => navegar({ tipo: "cet_sector", turno: "TURNO TARDE" })} />
+              onClick={() => navegar({ tipo: "cet_alumnos", sector: vista.sector, turno: "TURNO TARDE" })} />
           </div>
         );
 
-      case "cet_sector": {
-        const { turno } = vista;
-        return (
-          <div className="space-y-4">
-            <OptionCard label="SECTOR NIÑOS" color="teal" icon={<NinosIcon />}
-              onClick={() => navegar({
-                tipo: "alumnos",
-                drivePath: ["CET", turno, "SECTOR NIÑOS", CATEGORIA_REFERENCIA],
-                label: `${turno} · SECTOR NIÑOS`,
-              })} />
-            <OptionCard label="SECTOR JOVENES" color="purple" icon={<JovenesIcon />}
-              onClick={() => navegar({
-                tipo: "alumnos",
-                drivePath: ["CET", turno, "SECTOR JOVENES", CATEGORIA_REFERENCIA],
-                label: `${turno} · SECTOR JOVENES`,
-              })} />
-          </div>
-        );
-      }
-
-      case "alumnos": {
-        const { drivePath, label } = vista;
-        const isInclusion = drivePath[0] === "INCLUSION";
-
+      case "cet_alumnos":
         if (loadingItems) return <LoadingState texto="Cargando alumnos..." />;
-        if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={() => setHistorial([...historial])} />;
-
+        if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron alumnos." />;
         return (
           <div className="space-y-3">
-            {items.length === 0 && (
-              <EmptyState texto="No se encontraron alumnos en esta sección." />
-            )}
-            {items.map((alumno) => {
-              const categoriasPath = isInclusion
-                ? ["INCLUSION", alumno.name]
-                : drivePath.slice(0, 3); // ["CET", turno, sector]
-
-              return (
-                <OptionCard
-                  key={alumno.id}
-                  label={alumno.name.toUpperCase()}
-                  color={isInclusion ? "green" : "blue"}
-                  icon={<AlumnoIcon />}
-                  onClick={() => navegar({
-                    tipo: "categorias",
-                    drivePath: categoriasPath,
-                    alumno: alumno.name,
-                    label,
-                  })}
-                />
-              );
-            })}
-          </div>
-        );
-      }
-
-      case "categorias": {
-        const { drivePath, alumno, label } = vista;
-        const isInclusion = drivePath[0] === "INCLUSION";
-
-        return (
-          <div className="space-y-3">
-            {CATEGORIAS.map((cat) => {
-              const areasDrivePath = isInclusion
-                ? [...drivePath, cat]           // INCLUSION/alumno/CATEGORIA
-                : [...drivePath, cat, alumno];  // CET/turno/sector/CATEGORIA/alumno
-
-              return (
-                <OptionCard
-                  key={cat}
-                  label={cat}
-                  color="blue"
-                  icon={<CarpetaIcon />}
-                  onClick={() => navegar({
-                    tipo: "areas",
-                    drivePath: areasDrivePath,
-                    alumno,
-                    categoria: cat,
-                    label,
-                  })}
-                />
-              );
-            })}
-          </div>
-        );
-      }
-
-      case "areas": {
-        const { alumno, categoria } = vista;
-
-        if (loadingItems) return <LoadingState texto="Cargando áreas..." />;
-        if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={() => setHistorial([...historial])} />;
-
-        return (
-          <div className="space-y-3">
-            {items.length === 0 && (
-              <EmptyState texto={`No se encontraron áreas para ${alumno} en ${categoria}.`} />
-            )}
-            {items.map((area) => (
-              <AreaLink key={area.id} label={area.name} url={driveUrl(area.id)} />
+            {folderItems.map((a) => (
+              <OptionCard key={a.id} label={a.name} color="blue" icon={<AlumnoIcon />}
+                onClick={() => navegar({
+                  tipo: "cet_categorias",
+                  sector: vista.sector,
+                  turno: vista.turno,
+                  alumno: a.name,
+                })} />
             ))}
           </div>
         );
-      }
+
+      case "cet_categorias":
+        return (
+          <div className="space-y-3">
+            {CATEGORIAS.map((cat) => (
+              <OptionCard key={cat} label={cat} color="blue" icon={<CarpetaIcon />}
+                onClick={() => navegar({
+                  tipo: "cet_areas",
+                  sector: vista.sector,
+                  turno: vista.turno,
+                  alumno: vista.alumno,
+                  categoria: cat,
+                })} />
+            ))}
+          </div>
+        );
+
+      case "cet_areas":
+        if (loadingItems) return <LoadingState texto="Buscando carpeta..." />;
+        if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
+        if (areaItems.length === 0) return <EmptyState texto="No hay carpetas disponibles." />;
+        return (
+          <div className="space-y-3">
+            {areaItems.map((item) => (
+              <DriveLink key={item.id} label={item.name} url={driveUrl(item.id)} />
+            ))}
+          </div>
+        );
+
+      case "inclusion_grupos":
+        if (loadingItems) return <LoadingState texto="Cargando..." />;
+        if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron grupos." />;
+        return (
+          <div className="space-y-3">
+            {folderItems.map((g) => (
+              <OptionCard key={g.id} label={g.name} color="green" icon={<GrupoIcon />}
+                onClick={() => navegar({ tipo: "inclusion_alumnos", grupo: g.name })} />
+            ))}
+          </div>
+        );
+
+      case "inclusion_alumnos":
+        if (loadingItems) return <LoadingState texto="Cargando alumnos..." />;
+        if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron alumnos." />;
+        return (
+          <div className="space-y-3">
+            {folderItems.map((a) => (
+              <OptionCard key={a.id} label={a.name} color="green" icon={<AlumnoIcon />}
+                onClick={() => navegar({
+                  tipo: "inclusion_docs",
+                  grupo: vista.grupo,
+                  alumno: a.name,
+                })} />
+            ))}
+          </div>
+        );
+
+      case "inclusion_docs":
+        if (loadingItems) return <LoadingState texto="Cargando carpetas..." />;
+        if (errorMsg)     return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron carpetas." />;
+        return (
+          <div className="space-y-3">
+            {folderItems.map((doc) => (
+              <DriveLink key={doc.id} label={doc.name} url={driveUrl(doc.id)} />
+            ))}
+          </div>
+        );
     }
+  }
+
+  function retryCurrentVista() {
+    setHistorial([...historial]);
   }
 
   return (
@@ -256,9 +307,9 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
   );
 }
 
-// ── Sub-componentes ─────────────────────────────────────────
+// ── Sub-componentes ─────────────────────────────────────────────────────────
 
-function AreaLink({ label, url }: { label: string; url: string }) {
+function DriveLink({ label, url }: { label: string; url: string }) {
   return (
     <a
       href={url}
@@ -266,14 +317,15 @@ function AreaLink({ label, url }: { label: string; url: string }) {
       rel="noopener noreferrer"
       className="w-full bg-white border border-gray-200 hover:border-blue-400 hover:bg-blue-50
                  active:bg-blue-100 text-gray-800 font-medium rounded-2xl px-5 py-4
-                 flex items-center gap-4 shadow-sm transition-all duration-150 active:scale-[0.98] select-none"
+                 flex items-center gap-4 shadow-sm transition-all duration-150
+                 active:scale-[0.98] select-none"
     >
       <span className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
         <FolderOpenIcon />
       </span>
       <span className="text-sm leading-snug text-left flex-1">{label}</span>
-      <svg className="flex-shrink-0 w-5 h-5 text-blue-500"
-           fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="flex-shrink-0 w-5 h-5 text-blue-500" fill="none"
+           stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
       </svg>
@@ -293,7 +345,7 @@ function LoadingState({ texto }: { texto: string }) {
 function ErrorState({ mensaje, onRetry }: { mensaje: string; onRetry: () => void }) {
   return (
     <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-6 text-center space-y-3">
-      <p className="text-red-700 text-sm">{mensaje}</p>
+      <p className="text-red-700 text-sm leading-relaxed">{mensaje}</p>
       <button onClick={onRetry}
         className="text-sm text-blue-600 underline hover:text-blue-800">
         Reintentar
@@ -310,7 +362,7 @@ function EmptyState({ texto }: { texto: string }) {
   );
 }
 
-// ── Íconos SVG ───────────────────────────────────────────────
+// ── Íconos SVG ───────────────────────────────────────────────────────────────
 
 function SchoolIcon() {
   return (
@@ -367,6 +419,14 @@ function AlumnoIcon() {
     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
         d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  );
+}
+function GrupoIcon() {
+  return (
+    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
     </svg>
   );
 }

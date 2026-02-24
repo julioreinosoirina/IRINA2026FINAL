@@ -3,6 +3,11 @@ export interface DriveFile {
   name: string;
 }
 
+export interface AreaLink {
+  name: string;
+  id: string;
+}
+
 const childrenCache = new Map<string, DriveFile[]>();
 const folderCache = new Map<string, string>();
 
@@ -15,7 +20,8 @@ export async function listSubfolders(parentId: string, token: string): Promise<D
     `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`
   );
   const res = await fetch(
-    `${DRIVE_API}?q=${q}&fields=files(id,name)&orderBy=name&pageSize=200&includeItemsFromAllDrives=true&supportsAllDrives=true`,
+    `${DRIVE_API}?q=${q}&fields=files(id,name)&orderBy=name&pageSize=200` +
+    `&includeItemsFromAllDrives=true&supportsAllDrives=true`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
 
@@ -45,6 +51,7 @@ export async function findFolder(
   return null;
 }
 
+// Resolves a path step by step. Returns null if any segment is not found.
 export async function resolvePath(
   parts: string[],
   token: string,
@@ -53,14 +60,46 @@ export async function resolvePath(
   let currentId = rootId;
   for (const part of parts) {
     const next = await findFolder(currentId, part, token);
-    if (!next) {
-      const available = await listSubfolders(currentId, token);
-      const names = available.map((f) => f.name).join(", ") || "(vacío)";
-      throw new Error(`FOLDER_NOT_FOUND: No se encontró "${part}". Carpetas disponibles: ${names}`);
-    }
+    if (!next) return null;
     currentId = next;
   }
   return currentId;
+}
+
+// Smart resolver for CET: alumno can be directly inside categoria OR inside an area subfolder.
+// Returns list of AreaLink items:
+//   - If alumno found directly → single item with the alumno folder id
+//   - If not → lists area subfolders that contain the alumno, resolved to alumno folder ids
+export async function resolveAreaLinks(
+  categoriaPath: string[],
+  alumno: string,
+  token: string,
+  rootId: string
+): Promise<AreaLink[]> {
+  // Try direct path: categoria/alumno
+  const directId = await resolvePath([...categoriaPath, alumno], token, rootId);
+  if (directId) {
+    return [{ name: "Abrir carpeta", id: directId }];
+  }
+
+  // Try via areas: get subfolders of categoria, then find alumno in each
+  const categoriaId = await resolvePath(categoriaPath, token, rootId);
+  if (!categoriaId) return [];
+
+  const areas = await listSubfolders(categoriaId, token);
+  const results: AreaLink[] = [];
+
+  await Promise.all(
+    areas.map(async (area) => {
+      const alumnoId = await findFolder(area.id, alumno, token);
+      if (alumnoId) {
+        results.push({ name: area.name, id: alumnoId });
+      }
+    })
+  );
+
+  results.sort((a, b) => a.name.localeCompare(b.name, "es"));
+  return results;
 }
 
 export function driveUrl(folderId: string): string {
