@@ -254,13 +254,17 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
         return (
           <div className="space-y-3">
             {folderItems.map((a) => (
-              <OptionCard key={a.id} label={a.name} color="green" icon={<AlumnoIcon />}
-                onClick={() => navegar({
+              <InclusionFolderCard
+                key={a.id}
+                label={a.name}
+                url={driveUrl(a.id)}
+                onNavigate={() => navegar({
                   tipo: "inclusion_docs",
                   grupo: vista.grupo,
                   alumno: a.name,
                   alumnoId: a.id,
-                })} />
+                })}
+              />
             ))}
           </div>
         );
@@ -300,6 +304,43 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
 }
 
 // ── Sub-componentes ─────────────────────────────────────────────────────────
+
+// Tarjeta para INCLUSION: "Abrir en Drive" directo + flecha para ver subcarpetas
+function InclusionFolderCard({ label, url, onNavigate }: { label: string; url: string; onNavigate: () => void }) {
+  return (
+    <div
+      className="w-full bg-white rounded-3xl px-4 py-3 flex items-center gap-3 shadow-sm"
+      style={{ border: "2px solid #e7e5e4" }}
+    >
+      <span className="flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center"
+        style={{ background: "#d1fae5" }}>
+        <GrupoIcon />
+      </span>
+      <span className="text-sm font-bold leading-snug flex-1 text-left" style={{ color: "#1c1917" }}>
+        {label}
+      </span>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex-shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold whitespace-nowrap"
+        style={{ background: "#d1fae5", color: "#065f46", textDecoration: "none" }}
+      >
+        Abrir
+      </a>
+      <button
+        onClick={onNavigate}
+        className="flex-shrink-0 w-9 h-9 rounded-2xl flex items-center justify-center transition-colors"
+        style={{ background: "#f5f5f4", border: "none", cursor: "pointer" }}
+        title="Ver subcarpetas"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="#78716c" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 function DriveLink({ label, url }: { label: string; url: string }) {
   return (

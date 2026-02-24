@@ -78,7 +78,7 @@ export default function Login({ onLogin }: LoginProps) {
       </div>
 
       <div className="flex-1 bg-white rounded-t-3xl shadow-xl px-6 pt-8 pb-10" style={{ borderTopLeftRadius: "28px", borderTopRightRadius: "28px" }}>
-        <h2 className="text-base font-bold text-stone-800 mb-6">Ingresá con tu cuenta institucional</h2>
+        <h2 className="text-base font-bold text-stone-800 mb-6 text-center">Ingresá con tu cuenta institucional</h2>
 
         {!isConfigured && (
           <div className="mb-4 bg-yellow-50 border border-yellow-300 text-yellow-800 text-xs rounded-2xl px-4 py-3">
