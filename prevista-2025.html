@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Previsualización — Sistema Anterior 2025</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a; color: #fff; padding: 24px; }
+
+  .nav { display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
+  .nav-btn { padding: 8px 18px; border-radius: 999px; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 600; transition: all .2s; }
+  .nav-btn.active { background: #f59e0b; color: #fff; }
+  .nav-btn:not(.active) { background: #1e293b; color: #94a3b8; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .demo-label { font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .1em; color: #64748b; margin-bottom: 16px; }
+
+  /* Phone frame */
+  .phone { width: 340px; border-radius: 28px; overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.07);
+    display: inline-block; vertical-align: top; margin-right: 24px; margin-bottom: 24px; }
+
+  /* Header amber */
+  .app-header { background: linear-gradient(135deg, #f59e0b, #d97706);
+    padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; }
+  .app-header-left { }
+  .app-header-title { font-size: 15px; font-weight: 800; color: #fff; }
+  .app-header-sub { font-size: 11px; color: rgba(255,255,255,.75); margin-top: 2px; }
+  .app-header-right { font-size: 11px; color: rgba(255,255,255,.8); text-align: right; }
+  .app-header-logout { font-size: 11px; color: rgba(255,255,255,.7);
+    text-decoration: underline; cursor: pointer; margin-top: 2px; display: block; }
+
+  /* App body */
+  .app-body { background: #fafaf9; padding: 16px; min-height: 320px; }
+
+  /* Existing cards */
+  .card-cet { border-radius: 24px; padding: 18px 16px;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    display: flex; align-items: center; gap: 14px; margin-bottom: 12px; cursor: pointer; }
+  .card-inc { border-radius: 24px; padding: 18px 16px;
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    display: flex; align-items: center; gap: 14px; margin-bottom: 12px; cursor: pointer; }
+  .card-icon { width: 46px; height: 46px; border-radius: 16px;
+    background: rgba(255,255,255,.65); display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; }
+  .card-title { font-size: 17px; font-weight: 800; }
+  .card-title-cet { color: #1d4ed8; }
+  .card-title-inc { color: #065f46; }
+  .card-desc { font-size: 11px; margin-top: 2px; }
+  .card-desc-cet { color: #3b82f6; }
+  .card-desc-inc { color: #059669; }
+  .card-arrow { margin-left: auto; width: 28px; height: 28px; border-radius: 8px;
+    background: rgba(255,255,255,.5); display: flex; align-items: center; justify-content: center; }
+
+  /* ═══ OPCION A — Misma jerarquía, borde amarillo advertencia ═══ */
+  .card-prev-a { border-radius: 24px; padding: 18px 16px; margin-bottom: 12px; cursor: pointer;
+    background: linear-gradient(135deg, #fef9c3, #fef08a);
+    display: flex; align-items: center; gap: 14px; border: 2px solid #fbbf24; }
+  .card-prev-a .card-icon-warn { width: 46px; height: 46px; border-radius: 16px;
+    background: rgba(255,255,255,.7); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-prev-a .card-title-warn { font-size: 14px; font-weight: 800; color: #92400e; }
+  .card-prev-a .card-desc-warn { font-size: 10px; color: #b45309; margin-top: 2px; }
+
+  /* ═══ OPCION B — Separador + estilo "archivo" gris ═══ */
+  .divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 14px; }
+  .divider span { font-size: 10px; font-weight: 700; color: #a8a29e;
+    text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: #e7e5e4; }
+
+  .card-prev-b { border-radius: 20px; padding: 14px 16px; margin-bottom: 12px; cursor: pointer;
+    background: #fff; display: flex; align-items: center; gap: 12px;
+    border: 2px dashed #d6d3d1; }
+  .card-prev-b .icon-b { width: 40px; height: 40px; border-radius: 12px;
+    background: #f5f5f4; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .card-prev-b .title-b { font-size: 13px; font-weight: 700; color: #57534e; }
+  .card-prev-b .desc-b { font-size: 10px; color: #a8a29e; margin-top: 2px; }
+  .badge-archivo { background: #fef3c7; color: #92400e; border-radius: 8px;
+    padding: 3px 9px; font-size: 10px; font-weight: 700; margin-left: auto; flex-shrink: 0; }
+
+  /* ═══ OPCION C — Banner destacado con franja de advertencia ═══ */
+  .card-prev-c { border-radius: 20px; overflow: hidden; margin-bottom: 12px; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .card-prev-c-top { background: #f97316; padding: 6px 14px;
+    display: flex; align-items: center; gap: 6px; }
+  .card-prev-c-top span { font-size: 10px; font-weight: 800; color: #fff;
+    text-transform: uppercase; letter-spacing: .06em; }
+  .card-prev-c-body { background: #fff7ed; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    border: 2px solid #fed7aa; border-top: none; border-radius: 0 0 20px 20px; }
+  .icon-c { width: 42px; height: 42px; border-radius: 12px;
+    background: #ffedd5; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .title-c { font-size: 14px; font-weight: 800; color: #7c2d12; }
+  .desc-c { font-size: 10px; color: #c2410c; margin-top: 2px; }
+  .open-c { margin-left: auto; background: #f97316; color: #fff; border-radius: 8px;
+    padding: 5px 11px; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+
+  .note { background: rgba(255,255,255,.05); border-radius: 12px; padding: 14px 16px;
+    font-size: 12px; color: #94a3b8; line-height: 1.6; max-width: 720px; margin-top: 8px; }
+  .note strong { color: #e2e8f0; }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="show('A')">Opción A — Misma jerarquía ámbar</button>
+  <button class="nav-btn" onclick="show('B')">Opción B — Sección "Archivo"</button>
+  <button class="nav-btn" onclick="show('C')">Opción C — Banner naranja advertencia</button>
+</div>
+
+<!-- ══════════ OPCION A ══════════ -->
+<div id="secA" class="section active">
+  <div class="demo-label">Opción A — Misma jerarquía, destacado en ámbar con ícono de advertencia</div>
+  <div class="phone">
+    <div class="app-header">
+      <div class="app-header-left">
+        <div class="app-header-title">Instituto Irina</div>
+        <div class="app-header-sub">Seleccioná una sección</div>
+      </div>
+      <div class="app-header-right">
+        julioreinoso
+        <span class="app-header-logout">Salir</span>
+      </div>
+    </div>
+    <div class="app-body">
+      <div class="card-cet">
+        <div class="card-icon">
+          <svg width="22" height="22" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/></svg>
+        </div>
+        <div><div class="card-title card-title-cet">CET</div><div class="card-desc card-desc-cet">Centro Educación Terapéutica</div></div>
+        <div class="card-arrow"><svg width="12" height="12" fill="none" stroke="#1d4ed8" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+      </div>
+      <div class="card-inc">
+        <div class="card-icon">
+          <svg width="22" height="22" fill="none" stroke="#065f46" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.29 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div><div class="card-title card-title-inc">INCLUSION</div><div class="card-desc card-desc-inc">Integración educativa</div></div>
+        <div class="card-arrow"><svg width="12" height="12" fill="none" stroke="#065f46" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+      </div>
+
+      <!-- NUEVA OPCIÓN A -->
+      <div class="card-prev-a">
+        <div class="card-icon-warn">
+          <svg width="22" height="22" fill="none" stroke="#d97706" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div>
+          <div class="card-title-warn">Sistema Anterior Año 2025</div>
+          <div class="card-desc-warn">Solo consulta · No corresponde al ciclo actual</div>
+        </div>
+        <div class="card-arrow" style="background:rgba(255,255,255,.6)">
+          <svg width="12" height="12" fill="none" stroke="#92400e" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <strong>Opción A</strong> — Misma jerarquía que CET e INCLUSION, pero en tono ámbar/dorado con ícono de advertencia (triángulo). Texto descriptivo indica que es solo consulta. Se abre en Drive directamente (ícono de enlace externo).
+  </div>
+</div>
+
+<!-- ══════════ OPCION B ══════════ -->
+<div id="secB" class="section">
+  <div class="demo-label">Opción B — Sección separada "Archivo histórico" con estilo atenuado</div>
+  <div class="phone">
+    <div class="app-header">
+      <div class="app-header-left">
+        <div class="app-header-title">Instituto Irina</div>
+        <div class="app-header-sub">Seleccioná una sección</div>
+      </div>
+      <div class="app-header-right">
+        julioreinoso
+        <span class="app-header-logout">Salir</span>
+      </div>
+    </div>
+    <div class="app-body">
+      <div class="card-cet">
+        <div class="card-icon">
+          <svg width="22" height="22" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/></svg>
+        </div>
+        <div><div class="card-title card-title-cet">CET</div><div class="card-desc card-desc-cet">Centro Educación Terapéutica</div></div>
+        <div class="card-arrow"><svg width="12" height="12" fill="none" stroke="#1d4ed8" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+      </div>
+      <div class="card-inc">
+        <div class="card-icon">
+          <svg width="22" height="22" fill="none" stroke="#065f46" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.29 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div><div class="card-title card-title-inc">INCLUSION</div><div class="card-desc card-desc-inc">Integración educativa</div></div>
+        <div class="card-arrow"><svg width="12" height="12" fill="none" stroke="#065f46" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+      </div>
+
+      <!-- SEPARADOR -->
+      <div class="divider"><span>Archivo histórico</span></div>
+
+      <!-- NUEVA OPCIÓN B -->
+      <div class="card-prev-b">
+        <div class="icon-b">
+          <svg width="20" height="20" fill="none" stroke="#78716c" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+        </div>
+        <div>
+          <div class="title-b">Sistema Anterior Año 2025</div>
+          <div class="desc-b">⚠️ Solo consulta histórica · Abre en Drive</div>
+        </div>
+        <div class="badge-archivo">2025</div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <strong>Opción B</strong> — Las dos opciones principales quedan igual. Debajo aparece un separador "Archivo histórico" y el acceso 2025 en estilo atenuado con borde punteado, diferenciándolo claramente de las secciones activas. Badge "2025" a la derecha.
+  </div>
+</div>
+
+<!-- ══════════ OPCION C ══════════ -->
+<div id="secC" class="section">
+  <div class="demo-label">Opción C — Banner naranja con franja de advertencia visible</div>
+  <div class="phone">
+    <div class="app-header">
+      <div class="app-header-left">
+        <div class="app-header-title">Instituto Irina</div>
+        <div class="app-header-sub">Seleccioná una sección</div>
+      </div>
+      <div class="app-header-right">
+        julioreinoso
+        <span class="app-header-logout">Salir</span>
+      </div>
+    </div>
+    <div class="app-body">
+      <div class="card-cet">
+        <div class="card-icon">
+          <svg width="22" height="22" fill="none" stroke="#1d4ed8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.42A12 12 0 0121 13c0 6.07-4.93 11-11 11S1 19.07 1 13c0-.94.12-1.85.34-2.72L12 14z"/></svg>
+        </div>
+        <div><div class="card-title card-title-cet">CET</div><div class="card-desc card-desc-cet">Centro Educación Terapéutica</div></div>
+        <div class="card-arrow"><svg width="12" height="12" fill="none" stroke="#1d4ed8" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+      </div>
+      <div class="card-inc">
+        <div class="card-icon">
+          <svg width="22" height="22" fill="none" stroke="#065f46" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2c0-.66-.13-1.28-.36-1.86M7 20H2v-2a3 3 0 015.36-1.86M7 20v-2c0-.66.13-1.28.36-1.86m0 0a5 5 0 019.29 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div><div class="card-title card-title-inc">INCLUSION</div><div class="card-desc card-desc-inc">Integración educativa</div></div>
+        <div class="card-arrow"><svg width="12" height="12" fill="none" stroke="#065f46" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></div>
+      </div>
+
+      <!-- NUEVA OPCIÓN C -->
+      <div style="height:10px"></div>
+      <div class="card-prev-c">
+        <div class="card-prev-c-top">
+          <svg width="13" height="13" fill="none" stroke="#fff" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span>Acceso a información del año anterior</span>
+        </div>
+        <div class="card-prev-c-body">
+          <div class="icon-c">
+            <svg width="20" height="20" fill="none" stroke="#c2410c" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+          </div>
+          <div>
+            <div class="title-c">Sistema Anterior Año 2025</div>
+            <div class="desc-c">Solo lectura · No modifica el ciclo 2026</div>
+          </div>
+          <div class="open-c">Abrir</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="note">
+    <strong>Opción C</strong> — Franja naranja superior bien visible con ícono de advertencia y texto aclaratorio. Cuerpo en tono durazno/naranja claro. Botón "Abrir" a la derecha. La franja llama la atención y deja claro que es información del año anterior.
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
