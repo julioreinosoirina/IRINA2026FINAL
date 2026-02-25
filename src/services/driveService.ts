@@ -3,10 +3,20 @@ export interface DriveFile {
   name: string;
 }
 
+export interface DriveItem {
+  id: string;
+  name: string;
+  mimeType: string;
+  size?: string;
+  modifiedTime?: string;
+}
+
 export interface AreaLink {
   name: string;
   id: string;
 }
+
+export const FOLDER_MIME = "application/vnd.google-apps.folder";
 
 const childrenCache = new Map<string, DriveFile[]>();
 const folderCache = new Map<string, string>();
@@ -17,7 +27,7 @@ export async function listSubfolders(parentId: string, token: string): Promise<D
   if (childrenCache.has(parentId)) return childrenCache.get(parentId)!;
 
   const q = encodeURIComponent(
-    `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`
+    `'${parentId}' in parents and mimeType='${FOLDER_MIME}' and trashed=false`
   );
   const res = await fetch(
     `${DRIVE_API}?q=${q}&fields=files(id,name)&orderBy=name&pageSize=200` +
@@ -32,6 +42,76 @@ export async function listSubfolders(parentId: string, token: string): Promise<D
   const files: DriveFile[] = data.files ?? [];
   childrenCache.set(parentId, files);
   return files;
+}
+
+// Lists ALL items (files + subfolders) inside a folder — used by folder_view
+export async function listFolderContents(folderId: string, token: string): Promise<DriveItem[]> {
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
+  const res = await fetch(
+    `${DRIVE_API}?q=${q}&fields=files(id,name,mimeType,size,modifiedTime)` +
+    `&orderBy=folder,name&pageSize=200` +
+    `&includeItemsFromAllDrives=true&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  if (res.status === 401) throw new Error("TOKEN_EXPIRED");
+  if (!res.ok) throw new Error(`Drive API error: ${res.status}`);
+
+  const data = await res.json();
+  return data.files ?? [];
+}
+
+// Uploads a file to a Drive folder using resumable upload (with progress)
+export async function uploadFile(
+  folderId: string,
+  file: File,
+  token: string,
+  onProgress?: (pct: number) => void
+): Promise<void> {
+  const metadata = { name: file.name, parents: [folderId] };
+
+  const initRes = await fetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "X-Upload-Content-Type": file.type || "application/octet-stream",
+        "X-Upload-Content-Length": String(file.size),
+      },
+      body: JSON.stringify(metadata),
+    }
+  );
+
+  if (initRes.status === 401) throw new Error("TOKEN_EXPIRED");
+  if (!initRes.ok) throw new Error(`No se pudo iniciar la carga: ${initRes.status}`);
+
+  const uploadUrl = initRes.headers.get("Location");
+  if (!uploadUrl) throw new Error("No se obtuvo URL de carga del servidor");
+
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+
+    if (onProgress) {
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+      });
+    }
+
+    xhr.addEventListener("load", () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Error al subir el archivo: ${xhr.status}`));
+    });
+
+    xhr.addEventListener("error", () =>
+      reject(new Error("Error de red al subir el archivo"))
+    );
+
+    xhr.send(file);
+  });
 }
 
 export async function findFolder(
@@ -51,7 +131,6 @@ export async function findFolder(
   return null;
 }
 
-// Resolves a path step by step. Returns null if any segment is not found.
 export async function resolvePath(
   parts: string[],
   token: string,
@@ -66,23 +145,17 @@ export async function resolvePath(
   return currentId;
 }
 
-// Smart resolver for CET: alumno can be directly inside categoria OR inside an area subfolder.
-// Returns list of AreaLink items:
-//   - If alumno found directly → single item with the alumno folder id
-//   - If not → lists area subfolders that contain the alumno, resolved to alumno folder ids
 export async function resolveAreaLinks(
   categoriaPath: string[],
   alumno: string,
   token: string,
   rootId: string
 ): Promise<AreaLink[]> {
-  // Try direct path: categoria/alumno
   const directId = await resolvePath([...categoriaPath, alumno], token, rootId);
   if (directId) {
     return [{ name: "Abrir carpeta", id: directId }];
   }
 
-  // Try via areas: get subfolders of categoria, then find alumno in each
   const categoriaId = await resolvePath(categoriaPath, token, rootId);
   if (!categoriaId) return [];
 
