@@ -424,7 +424,59 @@ function UploadZone({ folderId, token, onUploaded }: {
 
   return (
     <div className="mb-5">
-      <input ref={inputRef} type="file" accept="*/*" className="hidden" onChange={handleFile} />
+      <input
+        ref={inputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFile}
+        accept={[
+          // Imágenes
+          "image/*",
+          // Videos
+          "video/*",
+          // Audio
+          "audio/*",
+          // PDF
+          "application/pdf",
+          ".pdf",
+          // Word
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          ".doc",
+          ".docx",
+          // Excel
+          "application/vnd.ms-excel",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          ".xls",
+          ".xlsx",
+          // PowerPoint
+          "application/vnd.ms-powerpoint",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          ".ppt",
+          ".pptx",
+          // Texto y datos
+          "text/plain",
+          "text/csv",
+          ".txt",
+          ".csv",
+          ".rtf",
+          // OpenDocument (LibreOffice)
+          "application/vnd.oasis.opendocument.text",
+          "application/vnd.oasis.opendocument.spreadsheet",
+          "application/vnd.oasis.opendocument.presentation",
+          ".odt",
+          ".ods",
+          ".odp",
+          // Comprimidos
+          ".zip",
+          ".rar",
+          // Google Workspace exportados
+          ".gdoc",
+          ".gsheet",
+          ".gslides",
+        ].join(",")
+        }
+      />
 
       <button
         onClick={() => { setSuccess(null); setError(null); inputRef.current?.click(); }}
