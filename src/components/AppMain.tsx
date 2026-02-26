@@ -399,7 +399,8 @@ function UploadZone({ folderId, token, onUploaded }: {
   const [progress, setProgress] = useState(0);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const mediaInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -418,93 +419,71 @@ function UploadZone({ folderId, token, onUploaded }: {
       setError(err instanceof Error ? err.message : "Error al subir el archivo");
     } finally {
       setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (docInputRef.current) docInputRef.current.value = "";
+      if (mediaInputRef.current) mediaInputRef.current.value = "";
     }
   }
 
   return (
     <div className="mb-5">
+      {/* Input exclusivo para documentos - iOS abre "Archivos" con estas extensiones */}
       <input
-        ref={inputRef}
+        ref={docInputRef}
         type="file"
         className="hidden"
         onChange={handleFile}
-        accept={[
-          // Imágenes
-          "image/*",
-          // Videos
-          "video/*",
-          // Audio
-          "audio/*",
-          // PDF
-          "application/pdf",
-          ".pdf",
-          // Word
-          "application/msword",
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          ".doc",
-          ".docx",
-          // Excel
-          "application/vnd.ms-excel",
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          ".xls",
-          ".xlsx",
-          // PowerPoint
-          "application/vnd.ms-powerpoint",
-          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-          ".ppt",
-          ".pptx",
-          // Texto y datos
-          "text/plain",
-          "text/csv",
-          ".txt",
-          ".csv",
-          ".rtf",
-          // OpenDocument (LibreOffice)
-          "application/vnd.oasis.opendocument.text",
-          "application/vnd.oasis.opendocument.spreadsheet",
-          "application/vnd.oasis.opendocument.presentation",
-          ".odt",
-          ".ods",
-          ".odp",
-          // Comprimidos
-          ".zip",
-          ".rar",
-          // Google Workspace exportados
-          ".gdoc",
-          ".gsheet",
-          ".gslides",
-        ].join(",")
-        }
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp,.zip,.rar"
+      />
+      {/* Input exclusivo para multimedia */}
+      <input
+        ref={mediaInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFile}
+        accept="image/*,video/*,audio/*"
       />
 
-      <button
-        onClick={() => { setSuccess(null); setError(null); inputRef.current?.click(); }}
-        disabled={uploading}
-        className="w-full py-4 rounded-3xl font-bold text-sm flex items-center justify-center gap-3 transition-all"
-        style={{
-          background: uploading
-            ? "#fde68a"
-            : "linear-gradient(135deg, #f59e0b, #d97706)",
-          color: uploading ? "#92400e" : "#fff",
-          border: "none",
-          cursor: uploading ? "not-allowed" : "pointer",
-          boxShadow: uploading ? "none" : "0 4px 14px rgba(245,158,11,0.35)",
-        }}
-      >
-        {uploading ? (
-          <>
-            <div className="w-4 h-4 border-2 rounded-full animate-spin"
-              style={{ borderColor: "rgba(146,64,14,.3)", borderTopColor: "#92400e" }} />
-            Subiendo... {progress}%
-          </>
-        ) : (
-          <>
+      {uploading ? (
+        <div
+          className="w-full py-4 rounded-3xl font-bold text-sm flex items-center justify-center gap-3"
+          style={{ background: "#fde68a", color: "#92400e" }}
+        >
+          <div className="w-4 h-4 border-2 rounded-full animate-spin"
+            style={{ borderColor: "rgba(146,64,14,.3)", borderTopColor: "#92400e" }} />
+          Subiendo... {progress}%
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setSuccess(null); setError(null); docInputRef.current?.click(); }}
+            className="flex-1 py-3 rounded-3xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+            style={{
+              background: "linear-gradient(135deg, #f59e0b, #d97706)",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(245,158,11,0.35)",
+            }}
+          >
             <UploadIcon />
-            Subir archivo a esta carpeta
-          </>
-        )}
-      </button>
+            Documentos
+          </button>
+          <button
+            onClick={() => { setSuccess(null); setError(null); mediaInputRef.current?.click(); }}
+            className="flex-1 py-3 rounded-3xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+            style={{
+              background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(124,58,237,0.35)",
+            }}
+          >
+            <UploadIcon />
+            Fotos / Video
+          </button>
+        </div>
+      )}
 
       {uploading && (
         <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "#fde68a" }}>
