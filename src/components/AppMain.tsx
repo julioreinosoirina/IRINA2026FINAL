@@ -424,7 +424,7 @@ function UploadZone({ folderId, token, onUploaded }: {
 
   return (
     <div className="mb-5">
-      <input ref={inputRef} type="file" className="hidden" onChange={handleFile} />
+      <input ref={inputRef} type="file" accept="*/*" className="hidden" onChange={handleFile} />
 
       <button
         onClick={() => { setSuccess(null); setError(null); inputRef.current?.click(); }}
