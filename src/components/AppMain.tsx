@@ -77,7 +77,7 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
 
     async function cargar() {
       const needsLoad = [
-        "cet_alumnos", "cet_areas",
+        "cet_sector", "cet_alumnos", "cet_areas",
         "inclusion_grupos", "inclusion_alumnos", "inclusion_categorias",
         "folder_view",
       ].includes(vista.tipo);
@@ -90,7 +90,14 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
       setDriveItems([]);
 
       try {
-        if (vista.tipo === "cet_alumnos") {
+        if (vista.tipo === "cet_sector") {
+          const id = await resolvePath(["CET"], token, SISTEMA_FOLDER_ID);
+          if (!id) throw new Error("No se encontró la carpeta CET");
+          const items = await listSubfolders(id, token);
+          if (!cancelled) setFolderItems(items);
+        }
+
+        else if (vista.tipo === "cet_alumnos") {
           const id = await resolvePath(
             ["CET", vista.sector, vista.turno, CATEGORIA_REFERENCIA],
             token, SISTEMA_FOLDER_ID
@@ -186,15 +193,43 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
           </div>
         );
 
-      case "cet_sector":
+      case "cet_sector": {
+        if (loadingItems) return <LoadingState texto="Cargando secciones CET..." />;
+        if (errorMsg) return <ErrorState mensaje={errorMsg} onRetry={retryCurrentVista} />;
+        if (folderItems.length === 0) return <EmptyState texto="No se encontraron secciones." />;
+
+        const SECTORES_CON_ALUMNOS = ["niños", "jovenes", "jóvenes"];
+        const conAlumnos = folderItems.filter((f) => SECTORES_CON_ALUMNOS.includes(f.name.toLowerCase()));
+        const sinAlumnos = folderItems.filter((f) => !SECTORES_CON_ALUMNOS.includes(f.name.toLowerCase()));
+
         return (
-          <div className="space-y-4">
-            <OptionCard label="NIÑOS" color="teal" icon={<NinosIcon />}
-              onClick={() => navegar({ tipo: "cet_turno", sector: "NIÑOS" })} />
-            <OptionCard label="JOVENES" color="purple" icon={<JovenesIcon />}
-              onClick={() => navegar({ tipo: "cet_turno", sector: "JOVENES" })} />
+          <div className="space-y-5">
+            {conAlumnos.length > 0 && (
+              <div>
+                <SectionLabel texto="Sectores" />
+                <div className="space-y-3">
+                  {conAlumnos.map((f) => (
+                    <OptionCard key={f.id} label={f.name} color={f.name.toLowerCase().includes("ni") ? "teal" : "purple"}
+                      icon={f.name.toLowerCase().includes("ni") ? <NinosIcon /> : <JovenesIcon />}
+                      onClick={() => navegar({ tipo: "cet_turno", sector: f.name })} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {sinAlumnos.length > 0 && (
+              <div>
+                <SectionLabel texto="Otras secciones" />
+                <div className="space-y-3">
+                  {sinAlumnos.map((f) => (
+                    <OptionCard key={f.id} label={f.name} color="orange" icon={<CarpetaIcon />}
+                      onClick={() => navegar({ tipo: "folder_view", folderId: f.id, folderName: f.name })} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
+      }
 
       case "cet_turno":
         return (
