@@ -3,10 +3,11 @@ interface HeaderProps {
   subtitle?: string;
   onBack?: () => void;
   onLogout?: () => void;
+  onRefresh?: () => void;
   userEmail?: string;
 }
 
-export default function Header({ title, subtitle, onBack, onLogout, userEmail }: HeaderProps) {
+export default function Header({ title, subtitle, onBack, onLogout, onRefresh, userEmail }: HeaderProps) {
   return (
     <header className="text-white shadow-lg sticky top-0 z-10"
       style={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" }}>
@@ -32,6 +33,21 @@ export default function Header({ title, subtitle, onBack, onLogout, userEmail }:
             <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.75)" }}>{subtitle}</p>
           )}
         </div>
+
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className="flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-2xl transition-colors"
+            style={{ background: "rgba(255,255,255,0.2)" }}
+            aria-label="Actualizar"
+            title="Actualizar carpetas desde Drive"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
+        )}
 
         {onLogout && userEmail && (
           <div className="flex-shrink-0 flex flex-col items-end gap-0.5">

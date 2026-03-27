@@ -407,12 +407,23 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
     }
   }
 
+  function handleRefresh() {
+    clearCache();
+    setRefreshKey((k) => k + 1);
+  }
+
+  const vistasTienenListado = [
+    "cet_sector", "cet_alumnos", "cet_areas",
+    "inclusion_grupos", "inclusion_alumnos", "folder_view",
+  ];
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "#fafaf9" }}>
       <Header
         title={title}
         subtitle={subtitle}
         onBack={historial.length > 1 ? volver : undefined}
+        onRefresh={vistasTienenListado.includes(vista.tipo) ? handleRefresh : undefined}
         onLogout={handleLogout}
         userEmail={userEmail}
       />
