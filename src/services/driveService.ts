@@ -18,13 +18,17 @@ export interface AreaLink {
 
 export const FOLDER_MIME = "application/vnd.google-apps.folder";
 
-const childrenCache = new Map<string, DriveFile[]>();
-const folderCache = new Map<string, string>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+
+interface CacheEntry<T> { value: T; ts: number }
+const childrenCache = new Map<string, CacheEntry<DriveFile[]>>();
+const folderCache = new Map<string, CacheEntry<string>>();
 
 const DRIVE_API = "https://www.googleapis.com/drive/v3/files";
 
 export async function listSubfolders(parentId: string, token: string): Promise<DriveFile[]> {
-  if (childrenCache.has(parentId)) return childrenCache.get(parentId)!;
+  const hit = childrenCache.get(parentId);
+  if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.value;
 
   const q = encodeURIComponent(
     `'${parentId}' in parents and mimeType='${FOLDER_MIME}' and trashed=false`
@@ -40,7 +44,7 @@ export async function listSubfolders(parentId: string, token: string): Promise<D
 
   const data = await res.json();
   const files: DriveFile[] = data.files ?? [];
-  childrenCache.set(parentId, files);
+  childrenCache.set(parentId, { value: files, ts: Date.now() });
   return files;
 }
 
@@ -120,12 +124,13 @@ export async function findFolder(
   token: string
 ): Promise<string | null> {
   const key = `${parentId}|${name.toLowerCase()}`;
-  if (folderCache.has(key)) return folderCache.get(key)!;
+  const hit = folderCache.get(key);
+  if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.value;
 
   const children = await listSubfolders(parentId, token);
   const found = children.find((f) => f.name.toLowerCase() === name.toLowerCase());
   if (found) {
-    folderCache.set(key, found.id);
+    folderCache.set(key, { value: found.id, ts: Date.now() });
     return found.id;
   }
   return null;
