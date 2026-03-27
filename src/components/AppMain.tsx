@@ -6,11 +6,9 @@ import {
   NIVELES_INCLUSION, CATEGORIAS_INCLUSION,
 } from "../config";
 import {
-  listSubfolders,
+  createSession,
   listFolderContents,
   uploadFile,
-  resolveAreaLinks,
-  resolvePath,
   clearCache,
   FOLDER_MIME,
 } from "../services/driveService";
@@ -88,6 +86,10 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
       setFolderItems([]);
       setAreaItems([]);
       setDriveItems([]);
+
+      // Caché local por render: evita llamadas duplicadas dentro de esta carga,
+      // pero al navegar a otra pantalla se descarta → siempre datos frescos de Drive.
+      const { listSubfolders, resolvePath, resolveAreaLinks } = createSession();
 
       try {
         if (vista.tipo === "cet_sector") {

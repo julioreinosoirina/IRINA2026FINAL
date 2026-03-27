@@ -18,37 +18,85 @@ export interface AreaLink {
 
 export const FOLDER_MIME = "application/vnd.google-apps.folder";
 
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
-
-interface CacheEntry<T> { value: T; ts: number }
-const childrenCache = new Map<string, CacheEntry<DriveFile[]>>();
-const folderCache = new Map<string, CacheEntry<string>>();
-
 const DRIVE_API = "https://www.googleapis.com/drive/v3/files";
 
-export async function listSubfolders(parentId: string, token: string): Promise<DriveFile[]> {
-  const hit = childrenCache.get(parentId);
-  if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.value;
+// ── Caché por sesión de carga ─────────────────────────────────────────────
+// Se crea uno nuevo por cada llamado a createSession() — vive solo durante
+// la resolución de una pantalla. Al navegar se descarta: siempre datos frescos.
+export function createSession() {
+  const sessionCache = new Map<string, DriveFile[]>();
 
-  const q = encodeURIComponent(
-    `'${parentId}' in parents and mimeType='${FOLDER_MIME}' and trashed=false`
-  );
-  const res = await fetch(
-    `${DRIVE_API}?q=${q}&fields=files(id,name)&orderBy=name&pageSize=200` +
-    `&includeItemsFromAllDrives=true&supportsAllDrives=true`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
+  async function listSubfolders(parentId: string, token: string): Promise<DriveFile[]> {
+    if (sessionCache.has(parentId)) return sessionCache.get(parentId)!;
 
-  if (res.status === 401) throw new Error("TOKEN_EXPIRED");
-  if (!res.ok) throw new Error(`Drive API error: ${res.status}`);
+    const q = encodeURIComponent(
+      `'${parentId}' in parents and mimeType='${FOLDER_MIME}' and trashed=false`
+    );
+    const res = await fetch(
+      `${DRIVE_API}?q=${q}&fields=files(id,name)&orderBy=name&pageSize=200` +
+      `&includeItemsFromAllDrives=true&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-  const data = await res.json();
-  const files: DriveFile[] = data.files ?? [];
-  childrenCache.set(parentId, { value: files, ts: Date.now() });
-  return files;
+    if (res.status === 401) throw new Error("TOKEN_EXPIRED");
+    if (!res.ok) throw new Error(`Drive API error: ${res.status}`);
+
+    const data = await res.json();
+    const files: DriveFile[] = data.files ?? [];
+    sessionCache.set(parentId, files);
+    return files;
+  }
+
+  async function findFolder(parentId: string, name: string, token: string): Promise<string | null> {
+    const children = await listSubfolders(parentId, token);
+    const found = children.find((f) => f.name.toLowerCase() === name.toLowerCase());
+    return found ? found.id : null;
+  }
+
+  async function resolvePath(parts: string[], token: string, rootId: string): Promise<string | null> {
+    let currentId = rootId;
+    for (const part of parts) {
+      const next = await findFolder(currentId, part, token);
+      if (!next) return null;
+      currentId = next;
+    }
+    return currentId;
+  }
+
+  async function resolveAreaLinks(
+    categoriaPath: string[],
+    alumno: string,
+    token: string,
+    rootId: string
+  ): Promise<AreaLink[]> {
+    const directId = await resolvePath([...categoriaPath, alumno], token, rootId);
+    if (directId) {
+      return [{ name: "Abrir carpeta", id: directId }];
+    }
+
+    const categoriaId = await resolvePath(categoriaPath, token, rootId);
+    if (!categoriaId) return [];
+
+    const areas = await listSubfolders(categoriaId, token);
+    const results: AreaLink[] = [];
+
+    await Promise.all(
+      areas.map(async (area) => {
+        const alumnoId = await findFolder(area.id, alumno, token);
+        if (alumnoId) {
+          results.push({ name: area.name, id: alumnoId });
+        }
+      })
+    );
+
+    results.sort((a, b) => a.name.localeCompare(b.name, "es"));
+    return results;
+  }
+
+  return { listSubfolders, findFolder, resolvePath, resolveAreaLinks };
 }
 
-// Lists ALL items (files + subfolders) inside a folder — used by folder_view
+// ── Funciones sin caché — para listados de archivos (siempre frescos) ─────
 export async function listFolderContents(folderId: string, token: string): Promise<DriveItem[]> {
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
   const res = await fetch(
@@ -65,7 +113,7 @@ export async function listFolderContents(folderId: string, token: string): Promi
   return data.files ?? [];
 }
 
-// Uploads a file to a Drive folder using resumable upload (with progress)
+// ── Upload con progreso ───────────────────────────────────────────────────
 export async function uploadFile(
   folderId: string,
   file: File,
@@ -118,73 +166,9 @@ export async function uploadFile(
   });
 }
 
-export async function findFolder(
-  parentId: string,
-  name: string,
-  token: string
-): Promise<string | null> {
-  const key = `${parentId}|${name.toLowerCase()}`;
-  const hit = folderCache.get(key);
-  if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.value;
-
-  const children = await listSubfolders(parentId, token);
-  const found = children.find((f) => f.name.toLowerCase() === name.toLowerCase());
-  if (found) {
-    folderCache.set(key, { value: found.id, ts: Date.now() });
-    return found.id;
-  }
-  return null;
-}
-
-export async function resolvePath(
-  parts: string[],
-  token: string,
-  rootId: string
-): Promise<string | null> {
-  let currentId = rootId;
-  for (const part of parts) {
-    const next = await findFolder(currentId, part, token);
-    if (!next) return null;
-    currentId = next;
-  }
-  return currentId;
-}
-
-export async function resolveAreaLinks(
-  categoriaPath: string[],
-  alumno: string,
-  token: string,
-  rootId: string
-): Promise<AreaLink[]> {
-  const directId = await resolvePath([...categoriaPath, alumno], token, rootId);
-  if (directId) {
-    return [{ name: "Abrir carpeta", id: directId }];
-  }
-
-  const categoriaId = await resolvePath(categoriaPath, token, rootId);
-  if (!categoriaId) return [];
-
-  const areas = await listSubfolders(categoriaId, token);
-  const results: AreaLink[] = [];
-
-  await Promise.all(
-    areas.map(async (area) => {
-      const alumnoId = await findFolder(area.id, alumno, token);
-      if (alumnoId) {
-        results.push({ name: area.name, id: alumnoId });
-      }
-    })
-  );
-
-  results.sort((a, b) => a.name.localeCompare(b.name, "es"));
-  return results;
-}
-
 export function driveUrl(folderId: string): string {
   return `https://drive.google.com/drive/folders/${folderId}`;
 }
 
-export function clearCache(): void {
-  childrenCache.clear();
-  folderCache.clear();
-}
+// clearCache se mantiene como no-op por compatibilidad con el logout
+export function clearCache(): void {}
