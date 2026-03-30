@@ -9,6 +9,8 @@ import {
   createSession,
   listFolderContents,
   uploadFile,
+  deleteFile,
+  renameFile,
   clearCache,
   FOLDER_MIME,
 } from "../services/driveService";
@@ -394,7 +396,7 @@ export default function AppMain({ userEmail, token, onLogout }: AppMainProps) {
                   <div>
                     <SectionLabel texto="Archivos" />
                     <div className="space-y-2">
-                      {files.map((f) => <FileCard key={f.id} item={f} />)}
+                      {files.map((f) => <FileCard key={f.id} item={f} token={token} onRefresh={() => setRefreshKey((k) => k + 1)} />)}
                     </div>
                   </div>
                 )}
@@ -558,10 +560,27 @@ function UploadZone({ folderId, token, onUploaded }: {
 
 // ── FileCard ────────────────────────────────────────────────────────────────
 
-function FileCard({ item }: { item: DriveItem }) {
-  const viewUrl = item.mimeType.startsWith("application/vnd.google-apps")
-    ? `https://drive.google.com/file/d/${item.id}/view`
-    : `https://drive.google.com/file/d/${item.id}/view`;
+function getEditUrl(id: string, mimeType: string): string {
+  switch (mimeType) {
+    case "application/vnd.google-apps.document":     return `https://docs.google.com/document/d/${id}/edit`;
+    case "application/vnd.google-apps.spreadsheet":  return `https://docs.google.com/spreadsheets/d/${id}/edit`;
+    case "application/vnd.google-apps.presentation": return `https://docs.google.com/presentation/d/${id}/edit`;
+    case "application/vnd.google-apps.form":         return `https://docs.google.com/forms/d/${id}/edit`;
+    default: return `https://drive.google.com/file/d/${id}/view?usp=sharing`;
+  }
+}
+
+function FileCard({ item, token, onRefresh }: {
+  item: DriveItem;
+  token: string;
+  onRefresh: () => void;
+}) {
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState(item.name);
+  const [busy, setBusy] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const editUrl = getEditUrl(item.id, item.mimeType);
 
   function formatSize(bytes?: string) {
     if (!bytes) return "";
@@ -576,29 +595,121 @@ function FileCard({ item }: { item: DriveItem }) {
     return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
   }
 
-  return (
-    <a
-      href={viewUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="w-full bg-white rounded-2xl px-4 py-3 flex items-center gap-3 transition-all active:scale-[0.97]"
-      style={{ border: "1px solid #e7e5e4", textDecoration: "none", display: "flex" }}
-    >
-      <span className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-        style={{ background: "#f5f5f4" }}>
-        <FileTypeIcon mimeType={item.mimeType} />
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold truncate" style={{ color: "#1c1917" }}>{item.name}</p>
-        <p className="text-xs mt-0.5" style={{ color: "#a8a29e" }}>
-          {[formatSize(item.size), formatDate(item.modifiedTime)].filter(Boolean).join(" · ")}
+  async function handleDelete() {
+    setBusy(true);
+    try {
+      await deleteFile(item.id, token);
+      onRefresh();
+    } catch {
+      setBusy(false);
+      setConfirmDelete(false);
+    }
+  }
+
+  async function handleRename() {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === item.name) { setRenaming(false); return; }
+    setBusy(true);
+    try {
+      await renameFile(item.id, trimmed, token);
+      onRefresh();
+    } catch {
+      setBusy(false);
+      setRenaming(false);
+    }
+  }
+
+  if (confirmDelete) {
+    return (
+      <div className="w-full bg-white rounded-2xl px-4 py-3" style={{ border: "1px solid #fca5a5" }}>
+        <p className="text-sm font-semibold text-center mb-3" style={{ color: "#dc2626" }}>
+          ¿Eliminar "{item.name}"?
         </p>
+        <div className="flex gap-2">
+          <button onClick={() => setConfirmDelete(false)} disabled={busy}
+            className="flex-1 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: "#f5f5f4", color: "#57534e" }}>
+            Cancelar
+          </button>
+          <button onClick={handleDelete} disabled={busy}
+            className="flex-1 py-2 rounded-xl text-sm font-bold"
+            style={{ background: "#dc2626", color: "#fff" }}>
+            {busy ? "Eliminando..." : "Eliminar"}
+          </button>
+        </div>
       </div>
-      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="#d4d2cf" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-      </svg>
-    </a>
+    );
+  }
+
+  if (renaming) {
+    return (
+      <div className="w-full bg-white rounded-2xl px-4 py-3" style={{ border: "1px solid #d4d2cf" }}>
+        <input
+          className="w-full text-sm font-semibold px-3 py-2 rounded-xl mb-3 outline-none"
+          style={{ border: "1.5px solid #f59e0b", color: "#1c1917", background: "#fffbeb" }}
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setRenaming(false); }}
+          autoFocus
+        />
+        <div className="flex gap-2">
+          <button onClick={() => setRenaming(false)} disabled={busy}
+            className="flex-1 py-2 rounded-xl text-sm font-semibold"
+            style={{ background: "#f5f5f4", color: "#57534e" }}>
+            Cancelar
+          </button>
+          <button onClick={handleRename} disabled={busy}
+            className="flex-1 py-2 rounded-xl text-sm font-bold"
+            style={{ background: "#f59e0b", color: "#fff" }}>
+            {busy ? "Guardando..." : "Guardar"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full bg-white rounded-2xl" style={{ border: "1px solid #e7e5e4" }}>
+      <a href={editUrl} target="_blank" rel="noopener noreferrer"
+        className="flex items-center gap-3 px-4 py-3 transition-all active:scale-[0.97]"
+        style={{ textDecoration: "none", display: "flex" }}>
+        <span className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+          style={{ background: "#f5f5f4" }}>
+          <FileTypeIcon mimeType={item.mimeType} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate" style={{ color: "#1c1917" }}>{item.name}</p>
+          <p className="text-xs mt-0.5" style={{ color: "#a8a29e" }}>
+            {[formatSize(item.size), formatDate(item.modifiedTime)].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="#d4d2cf" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+      <div className="flex border-t" style={{ borderColor: "#f0efee" }}>
+        <button onClick={() => { setNewName(item.name); setRenaming(true); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors"
+          style={{ color: "#78716c", background: "transparent", border: "none", cursor: "pointer" }}>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          Renombrar
+        </button>
+        <div style={{ width: "1px", background: "#f0efee" }} />
+        <button onClick={() => setConfirmDelete(true)}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-semibold transition-colors"
+          style={{ color: "#dc2626", background: "transparent", border: "none", cursor: "pointer" }}>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          Eliminar
+        </button>
+      </div>
+    </div>
   );
 }
 

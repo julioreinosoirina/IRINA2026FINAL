@@ -28,8 +28,7 @@ export default function Login({ onLogin }: LoginProps) {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: [
-        "https://www.googleapis.com/auth/drive.readonly",
-        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive",
         "https://www.googleapis.com/auth/userinfo.email",
       ].join(" "),
       hosted_domain: INSTITUTO_DOMAIN,

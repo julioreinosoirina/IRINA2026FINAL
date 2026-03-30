@@ -170,5 +170,33 @@ export function driveUrl(folderId: string): string {
   return `https://drive.google.com/drive/folders/${folderId}`;
 }
 
+export async function deleteFile(fileId: string, token: string): Promise<void> {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (res.status === 401) throw new Error("TOKEN_EXPIRED");
+  if (!res.ok && res.status !== 204) throw new Error(`Error al eliminar: ${res.status}`);
+}
+
+export async function renameFile(fileId: string, newName: string, token: string): Promise<void> {
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name: newName }),
+    }
+  );
+  if (res.status === 401) throw new Error("TOKEN_EXPIRED");
+  if (!res.ok) throw new Error(`Error al renombrar: ${res.status}`);
+}
+
 // clearCache se mantiene como no-op por compatibilidad con el logout
 export function clearCache(): void {}
