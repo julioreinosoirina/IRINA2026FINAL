@@ -172,7 +172,7 @@ export function driveUrl(folderId: string): string {
 
 export async function deleteFile(fileId: string, token: string): Promise<void> {
   const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}`,
+    `https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`,
     {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
@@ -184,7 +184,7 @@ export async function deleteFile(fileId: string, token: string): Promise<void> {
 
 export async function renameFile(fileId: string, newName: string, token: string): Promise<void> {
   const res = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}`,
+    `https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`,
     {
       method: "PATCH",
       headers: {
