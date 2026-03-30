@@ -171,15 +171,21 @@ export function driveUrl(folderId: string): string {
 }
 
 export async function deleteFile(fileId: string, token: string): Promise<void> {
+  // En drives compartidos, mover a papelera en lugar de eliminar permanentemente.
+  // Requiere solo permisos de editor (DELETE permanente requiere ser organizador).
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`,
     {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ trashed: true }),
     }
   );
   if (res.status === 401) throw new Error("TOKEN_EXPIRED");
-  if (!res.ok && res.status !== 204) throw new Error(`Error al eliminar: ${res.status}`);
+  if (!res.ok) throw new Error(`Error al eliminar: ${res.status}`);
 }
 
 export async function renameFile(fileId: string, newName: string, token: string): Promise<void> {
